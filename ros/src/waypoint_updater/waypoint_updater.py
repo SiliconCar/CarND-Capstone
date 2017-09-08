@@ -95,6 +95,9 @@ class WaypointUpdater(object):
             wp_y = waypoint.pose.pose.position.y
             # distance calulated with distance formula... sqrt((x1 - x2)^2 + (y1 - y2)^2)
             dist = math.sqrt((carx - wp_x)**2 + (cary - wp_y)**2)
+            
+            # This isn't entirely right.. need to make sure the waypoint is in front of the 
+            # car as well as being the nearest
             if dist < min_dist:
                 min_dist = dist
                 min_loc = i
