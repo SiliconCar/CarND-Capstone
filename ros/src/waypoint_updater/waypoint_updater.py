@@ -4,7 +4,8 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
-import math
+import math, sys
+from itertools import islice, cycle
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -21,7 +22,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 10 # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
@@ -36,18 +37,26 @@ class WaypointUpdater(object):
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below
+        self.waypoints = None
+        self.current_pose = None
 
         rospy.spin()
 
+    # Callback for the position updater topic
     def pose_cb(self, msg):
-        # TODO: Implement
-        pass
+        self.current_pose = msg.pose
+        rospy.loginfo("Car position updated to %s", self.current_pose);
+        self.send_next_waypoints()
 
-    def waypoints_cb(self, waypoints):
-        # TODO: Implement
-        pass
-
+    # Callback for the waypoints updater topic
+    def waypoints_cb(self, lane):
+        # Looks like the waypoints won't change after they're initially sent to us. So once we get the data, we can ignore it later on
+        # https://carnd.slack.com/archives/C6NVDVAQ3/p1504803165000409?thread_ts=1504718014.000557&cid=C6NVDVAQ3
+        if self.waypoints is None:
+            self.waypoints = lane.waypoints
+            self.send_next_waypoints()
+        
+        
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         pass
@@ -69,6 +78,38 @@ class WaypointUpdater(object):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
+
+    def send_next_waypoints(self):
+        if self.waypoints is None or self.current_pose is None:
+            return
+
+        carx = self.current_pose.position.x
+        cary = self.current_pose.position.y
+
+        rospy.loginfo("Finding closest waypoint to car at position %f, %f", carx, cary)
+        # find the closest waypoint to the car
+        min_dist = sys.maxsize
+        min_loc = None
+        for i, waypoint in enumerate(self.waypoints):
+            wp_x = waypoint.pose.pose.position.x
+            wp_y = waypoint.pose.pose.position.y
+            # distance calulated with distance formula... sqrt((x1 - x2)^2 + (y1 - y2)^2)
+            dist = math.sqrt((carx - wp_x)**2 + (cary - wp_y)**2)
+            if dist < min_dist:
+                min_dist = dist
+                min_loc = i
+
+        closest_wp_pos = self.waypoints[min_loc].pose.pose.position     
+        
+        rospy.loginfo("Closeset waypoint- idx:%d x:%f y:%f", min_loc, closest_wp_pos.x, closest_wp_pos.y);
+        
+        # Now that we have the shortest distance, get the next LOOKAHEAD_WPS waypoints.
+        # This next line ensures that we loop around to the start of the list if we've hit the end.
+        # Not sure this is 100% correct... there's a pretty large delta between the positions 
+        # at the end and beginning of the list 
+        next_wps = list(islice(cycle(self.waypoints), min_loc, min_loc + LOOKAHEAD_WPS))
+
+        # TODO publish to final_waypoint topic
 
 
 if __name__ == '__main__':
