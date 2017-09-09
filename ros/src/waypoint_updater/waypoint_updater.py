@@ -19,7 +19,19 @@ Please note that our simulator also provides the exact location of traffic light
 current status in `/vehicle/traffic_lights` message. You can use this message to build this node
 as well as to verify your TL classifier.
 
-TODO (for Yousuf and Aaron): Stopline location for each traffic light.
+===============================
+
+Implemention Strategy (Partial Waypoint Updater)
+
+When you receive a message on the 'base_waypoints' topic, save this to a member var. This will not change once initialized. Future
+messages are ignored.
+
+For every message on the 'current_pose' topic:
+1. Find the closest waypoint to the vehicle's current position
+2. Starting from this waypoint generate a list of the next LOOKAHEAD_WPS points by sequentially iterating through the list starting
+   from the closest waypoint.
+3. Publish this list to the final_waypoints publisher
+
 '''
 
 LOOKAHEAD_WPS = 10 # Number of waypoints we will publish. You can change this number
@@ -112,7 +124,12 @@ class WaypointUpdater(object):
         # at the end and beginning of the list 
         next_wps = list(islice(cycle(self.waypoints), min_loc, min_loc + LOOKAHEAD_WPS))
 
-        # TODO publish to final_waypoint topic
+        rospy.loginfo("Publishing next waypoints to final_waypoints")
+        lane = Lane()
+        lane.waypoints = next_wps
+        lane.header.stamp = rospy.Time(0)
+        self.final_waypoints_pub.publish(lane)
+
 
 
 if __name__ == '__main__':
