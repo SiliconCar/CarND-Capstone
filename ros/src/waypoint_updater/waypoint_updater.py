@@ -56,7 +56,7 @@ class WaypointUpdater(object):
     # Callback for the position updater topic
     def pose_cb(self, msg):
         self.current_pose = msg.pose
-        rospy.loginfo("Car position %f, %f", self.current_pose.position.x, self.current_pose.position.y);
+        rospy.loginfo("Car position updated to %s", self.current_pose)
         self.send_next_waypoints()
 
     # Callback for the waypoints updater topic
