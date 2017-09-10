@@ -34,7 +34,7 @@ For every message on the 'current_pose' topic:
 
 '''
 
-LOOKAHEAD_WPS = 10 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
@@ -46,7 +46,6 @@ class WaypointUpdater(object):
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
-
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         self.waypoints = None
@@ -57,7 +56,7 @@ class WaypointUpdater(object):
     # Callback for the position updater topic
     def pose_cb(self, msg):
         self.current_pose = msg.pose
-        rospy.loginfo("Car position updated to %s", self.current_pose);
+        rospy.loginfo("Car position %f, %f", self.current_pose.position.x, self.current_pose.position.y);
         self.send_next_waypoints()
 
     # Callback for the waypoints updater topic
@@ -114,7 +113,7 @@ class WaypointUpdater(object):
                 min_dist = dist
                 min_loc = i
 
-        closest_wp_pos = self.waypoints[min_loc].pose.pose.position     
+        closest_wp_pos = self.waypoints[min_loc].pose.pose.position
         
         rospy.loginfo("Closeset waypoint- idx:%d x:%f y:%f", min_loc, closest_wp_pos.x, closest_wp_pos.y);
         
@@ -127,6 +126,7 @@ class WaypointUpdater(object):
         rospy.loginfo("Publishing next waypoints to final_waypoints")
         lane = Lane()
         lane.waypoints = next_wps
+        lane.header.frame_id = '/world'
         lane.header.stamp = rospy.Time(0)
         self.final_waypoints_pub.publish(lane)
 

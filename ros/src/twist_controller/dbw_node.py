@@ -60,9 +60,12 @@ class DBWNode(object):
         # Subscriptions
         rospy.Subscriber('/dbw_enabled', Bool, self.dbw_enabled_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
+        rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb)
 
         # Member vars
         self.dbw_enabled = True
+        self.current_velocity = None
+        self.twist_cmd = None
 
         self.loop()
 
@@ -76,8 +79,13 @@ class DBWNode(object):
             #                                                     <current linear velocity>,
             #                                                     <dbw status>,
             #                                                     <any other argument you need>)
+            if self.twist_cmd is None or self.current_velocity is None:
+                continue
 
-            throttle, brake, steering = self.controller.control()
+            throttle, brake, steering = self.controller.control(self.twist_cmd.twist.linear, 
+                self.twist_cmd.twist.angular, 
+                self.current_velocity.twist.linear,
+                self.dbw_enabled)
 
             if self.dbw_enabled:
                 self.publish(throttle, brake, steering)
@@ -85,29 +93,38 @@ class DBWNode(object):
 
     def publish(self, throttle, brake, steer):
         rospy.loginfo("publishing throttle %f, brake %f, steer %f", throttle, brake, steer)
-        tcmd = ThrottleCmd()
-        tcmd.enable = True
-        tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
-        tcmd.pedal_cmd = throttle
-        self.throttle_pub.publish(tcmd)
+        # We'll either publish the throttle or brake, not both
+
+        if throttle != 0:
+            tcmd = ThrottleCmd()
+            tcmd.enable = True
+            tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT
+            tcmd.pedal_cmd = throttle
+            self.throttle_pub.publish(tcmd)
+        else:
+            bcmd = BrakeCmd()
+            bcmd.enable = True
+            bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
+            bcmd.pedal_cmd = brake
+            self.brake_pub.publish(bcmd)
 
         scmd = SteeringCmd()
         scmd.enable = True
         scmd.steering_wheel_angle_cmd = steer
         self.steer_pub.publish(scmd)
 
-        bcmd = BrakeCmd()
-        bcmd.enable = True
-        bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
-        bcmd.pedal_cmd = brake
-        self.brake_pub.publish(bcmd)
 
     def dbw_enabled_cb(self, msg):
         rospy.loginfo("DBW status changed to: %s", msg)
         self.dbw_enabled = msg
 
     def current_velocity_cb(self, msg):
-        pass
+        self.current_velocity = msg
+
+    def twist_cmd_cb(self, msg):
+        rospy.loginfo("Received twist command %s", msg)
+        self.twist_cmd = msg
+
 
 
 if __name__ == '__main__':
