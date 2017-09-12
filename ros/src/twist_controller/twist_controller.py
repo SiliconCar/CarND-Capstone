@@ -18,4 +18,4 @@ class Controller(object):
     def control(self, v, w, current_v, dbw_enabled):
         # TODO Return throttle, brake, steer
 
-        return .3, 0., 0.
+        return .3, 0., 0.5

@@ -3,6 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 
 import math, sys
 from itertools import islice, cycle
@@ -30,11 +31,14 @@ For every message on the 'current_pose' topic:
 1. Find the closest waypoint to the vehicle's current position
 2. Starting from this waypoint generate a list of the next LOOKAHEAD_WPS points by sequentially iterating through the list starting
    from the closest waypoint.
+    2a. Set the speed based on if there's an upcoming red light
 3. Publish this list to the final_waypoints publisher
 
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+MAX_SPEED_METERS_PER_SEC = 4.47
+
 
 
 class WaypointUpdater(object):
@@ -43,13 +47,22 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        '''
+        TODO: Add a subscriber for /obstacle_waypoint
+
+        Not sure this is needed. I don't see it in the Udacity instructions. 
+        Also this isn't a valid topic name. The closest thing is /vehicle/obstacle 
+
+        -Doug
+        '''
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         self.waypoints = None
         self.current_pose = None
+        self.red_light_wp = None
 
         rospy.spin()
 
@@ -67,10 +80,14 @@ class WaypointUpdater(object):
             self.waypoints = lane.waypoints
             self.send_next_waypoints()
         
+    '''
+    Callback for the traffic light topic. This message contains a single integer
+    that represents the position of the closest waypoint to the traffic light
+    '''
+    def traffic_cb(self, light_idx):
+        rospy.loginfo("Closest traffic light at idx: %d", light_idx.data)
         
-    def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        self.red_light_wp = light_idx.data 
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -122,6 +139,17 @@ class WaypointUpdater(object):
         # Not sure this is 100% correct... there's a pretty large delta between the positions 
         # at the end and beginning of the list 
         next_wps = list(islice(cycle(self.waypoints), min_loc, min_loc + LOOKAHEAD_WPS))
+
+        # Set the target speed of the vehicle based on traffic light locations.
+        
+        # no upcoming red light, set all waypoints to max speed
+        if self.red_light_wp == -1:
+            for i in range(len(next_wps)):
+                self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
+        else:
+            # TODO adjust speed based on location of light
+            rospy.loginfo("Red light ahead. Adjusting speed")
+
 
         rospy.loginfo("Publishing next waypoints to final_waypoints")
         lane = Lane()
