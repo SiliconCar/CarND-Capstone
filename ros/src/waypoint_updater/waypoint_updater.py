@@ -130,26 +130,73 @@ class WaypointUpdater(object):
                 min_dist = dist
                 min_loc = i
 
-        closest_wp_pos = self.waypoints[min_loc].pose.pose.position
+        closest_wp = self.waypoints[min_loc]
+        closest_wp_pos = closest_wp.pose.pose.position
         
-        rospy.loginfo("Closeset waypoint- idx:%d x:%f y:%f", min_loc, closest_wp_pos.x, closest_wp_pos.y);
+        rospy.loginfo("Closest waypoint- idx:%d x:%f y:%f", min_loc, closest_wp_pos.x, closest_wp_pos.y);
         
         # Now that we have the shortest distance, get the next LOOKAHEAD_WPS waypoints.
         # This next line ensures that we loop around to the start of the list if we've hit the end.
         # Not sure this is 100% correct... there's a pretty large delta between the positions 
         # at the end and beginning of the list 
-        next_wps = list(islice(cycle(self.waypoints), min_loc, min_loc + LOOKAHEAD_WPS))
+        next_wps = list(islice(cycle(self.waypoints), min_loc, min_loc + LOOKAHEAD_WPS - 1))
 
-        # Set the target speed of the vehicle based on traffic light locations.
+        '''
+        Set the target speed of the vehicle based on traffic light locations.
         
-        # no upcoming red light, set all waypoints to max speed
-        if self.red_light_wp == -1:
-            for i in range(len(next_wps)):
-                self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
-        else:
-            # TODO adjust speed based on location of light
-            rospy.loginfo("Red light ahead. Adjusting speed")
+        When there's no red light, all waypoints are set to the max speed of 4.47 m/s (10 mph)
 
+        When there's a red light the waypoints speed are set as follows. 
+            i <= red light idx: linearly decrease speed from the vehicle's current speed to zero
+            red light idx < i: MAX_SPEED
+
+        -- Example --
+        Assume the closest waypont is 25 and there's a red light at waypoint 29. 
+        The vehicle's speed is 10 m/s (MAX_SPEED = 10 m/s)
+
+        The waypoints velocities will be as follows
+        Waypoint: 25   26   27   28   29   30   31 ...
+        Speed:    10   7.5  5    2.5  0    10   10
+
+        '''
+
+        '''  
+        WARNING - this case is not tested yet since there's no red light data.
+        This is my first stab at how I think it should be implemented. Don't 
+        expect it to work right off the bat, but hopefully it's close :)
+        - Doug
+        '''
+        current_velocity = self.get_waypoint_velocity(closest_wp)
+        is_red_light_ahead = self.red_light_wp != -1
+        
+        # If this error is thrown, need to rework solution. This means that the traffic light waypoint
+        # is behind the car. Hopefully this doesn't happen
+        if is_red_light_ahead and self.red_light_wp <= min_loc:
+            rospy.logerr("Red light idx is behind closest waypoint idx. Need to rework our solution")
+            return  
+
+        # Iterate through all the next waypoints and adjust their speed
+        for i in range(len(next_wps) - 1):
+            '''
+            Covers 2 cases:
+                - There's no red lights detected so all will be set to the max speed
+                - There's a red light and we've already iterated through the points
+                  before the traffic light. The remaining points (after the light)
+                  should be set to max speed
+            '''
+            if not is_red_light_ahead or i > self.red_light_wp:
+                self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
+            # There's a red light and we're at a waypoint before the red light waypoint
+            else:
+                # calculate the number of waypoints between the light & the wp closest to car
+                wp_delta = red_light_wp - min_loc
+
+                # decide how much we'll slow down at each waypoint before the light
+                velocity_step_down = current_velocity / wp_delta
+
+                # Determine the velocity for this waypoint and set it
+                new_velocity = current_velocity - (i * velocity_step_down)
+                self.set_waypoint_velocity(next_wps, i, new_velocity)
 
         rospy.loginfo("Publishing next waypoints to final_waypoints")
         lane = Lane()
