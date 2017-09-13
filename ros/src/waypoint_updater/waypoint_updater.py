@@ -189,7 +189,7 @@ class WaypointUpdater(object):
             # There's a red light and we're at a waypoint before the red light waypoint
             else:
                 # calculate the number of waypoints between the light & the wp closest to car
-                wp_delta = red_light_wp - min_loc
+                wp_delta = self.red_light_wp - min_loc
 
                 # decide how much we'll slow down at each waypoint before the light
                 velocity_step_down = current_velocity / wp_delta
