@@ -7,7 +7,6 @@ from std_msgs.msg import Int32
 
 import math, sys
 from itertools import islice, cycle
-
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
 
@@ -45,7 +44,14 @@ class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
 
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
+        """
+        I set the queue_size to one for the /current_pose subscriber because I noticed
+        that the pose messages recieved were lagging behind where the car was actually
+        For example if the car crashed, it would take several seconds for the pose messages
+        to catch up
+        - Sean
+        """
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb,queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
@@ -63,7 +69,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.current_pose = None
         self.red_light_wp = None
-
+        self.last_loc = None
         rospy.spin()
 
     # Callback for the position updater topic
@@ -134,13 +140,11 @@ class WaypointUpdater(object):
         closest_wp_pos = closest_wp.pose.pose.position
         
         rospy.loginfo("Closest waypoint- idx:%d x:%f y:%f", min_loc, closest_wp_pos.x, closest_wp_pos.y);
-        
         # Now that we have the shortest distance, get the next LOOKAHEAD_WPS waypoints.
         # This next line ensures that we loop around to the start of the list if we've hit the end.
         # Not sure this is 100% correct... there's a pretty large delta between the positions 
         # at the end and beginning of the list 
         next_wps = list(islice(cycle(self.waypoints), min_loc, min_loc + LOOKAHEAD_WPS - 1))
-
         '''
         Set the target speed of the vehicle based on traffic light locations.
         

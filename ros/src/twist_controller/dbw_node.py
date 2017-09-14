@@ -55,7 +55,8 @@ class DBWNode(object):
                                          BrakeCmd, queue_size=1)
 
         # TODO: Pass params to `Controller` constructor
-        self.controller = Controller()
+        self.controller = Controller(wheel_base=wheel_base, steer_ratio=steer_ratio, min_speed=0,
+                                     max_lat_accel=max_lat_accel, max_steer_angle=max_steer_angle)
 
         # Subscriptions
         rospy.Subscriber('/dbw_enabled', Bool, self.dbw_enabled_cb)
