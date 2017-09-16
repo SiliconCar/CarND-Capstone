@@ -124,6 +124,7 @@ class WaypointUpdater(object):
         # find the closest waypoint to the car
         min_dist = sys.maxsize
         min_loc = None
+        
         for i, waypoint in enumerate(self.waypoints):
             wp_x = waypoint.pose.pose.position.x
             wp_y = waypoint.pose.pose.position.y
