@@ -55,7 +55,7 @@ class DBWNode(object):
                                          BrakeCmd, queue_size=1)
 
         # TODO: Pass params to `Controller` constructor
-        self.controller = Controller(wheel_base=wheel_base, steer_ratio=steer_ratio, min_speed=0,
+        self.controller = Controller(wheel_base=wheel_base, steer_ratio=steer_ratio, min_speed=2,
                                      max_lat_accel=max_lat_accel, max_steer_angle=max_steer_angle)
 
         # Subscriptions
@@ -82,7 +82,7 @@ class DBWNode(object):
             #                                                     <any other argument you need>)
             if self.twist_cmd is None or self.current_velocity is None:
                 continue
-
+            
             throttle, brake, steering = self.controller.control(self.twist_cmd.twist.linear, 
                 self.twist_cmd.twist.angular, 
                 self.current_velocity.twist.linear,

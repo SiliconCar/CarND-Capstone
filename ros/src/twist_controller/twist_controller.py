@@ -3,7 +3,7 @@ from lowpass import LowPassFilter
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
-MAX_SPEED = 30.0
+MAX_SPEED = 20.0
 
 
 class Controller(object):
@@ -24,11 +24,16 @@ class Controller(object):
     def control(self, v, w, current_v, dbw_enabled):
         # TODO Return throttle, brake, steer
 
-        throttle = 0.3 if current_v.x < MAX_SPEED else 0.0
-        brake = 0.0
+        throttle = 0.3 if current_v.x < (MAX_SPEED*ONE_MPH) else 0.0
+        brake  = 0.0
+        steer = current_v.x * self.yaw_control.get_steering(v.x, w.z, current_v.x) 
+        if(v.x <= 1.0):
+            brake = 6.0
+            throttle = 0.0
+            #steer = 0.0
         #brake = 0.0 if current_v.x < MAX_SPEED else 4.47
         
         # Need to think of something better than a constant to scale the steering  
-        steer = 8 * self.yaw_control.get_steering(v.x, w.z, current_v.x) 
+        
         #steer = self.filter.filt(steer)
         return throttle, brake, steer

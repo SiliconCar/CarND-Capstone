@@ -34,13 +34,14 @@ class TLDetector(object):
         help you work on another single component of the node. This topic won't be available when
         testing your solution in real life so don't rely on it in the final submission.
         '''
-        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
+        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
+        self.upcoming_light_pub = rospy.Publisher('/upcoming_traffic_light', TrafficLight, queue_size=1)
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
@@ -73,7 +74,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-	rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
+        rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -81,7 +82,15 @@ class TLDetector(object):
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
-        if self.state != state:
+        #if(state == TrafficLight.RED):
+        traffic_light = TrafficLight()
+        traffic_light.state = state 
+        self.upcoming_light_pub.publish(traffic_light)
+        self.upcoming_red_light_pub.publish(Int32(light_wp))
+
+            
+
+        """if self.state != state:
             self.state_count = 0
             self.state = state
         elif self.state_count >= STATE_COUNT_THRESHOLD:
@@ -91,7 +100,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-        self.state_count += 1
+        self.state_count += 1"""
 
     def get_closest_waypoint(self, pose):
         """Identifies the closest path waypoint to the given position

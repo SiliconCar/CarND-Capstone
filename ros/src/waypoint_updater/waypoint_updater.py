@@ -2,7 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import PoseStamped
-from styx_msgs.msg import Lane, Waypoint
+from styx_msgs.msg import Lane, Waypoint, TrafficLight
 from std_msgs.msg import Int32
 
 import math, sys
@@ -54,6 +54,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb,queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/upcoming_traffic_light',TrafficLight,self.traffic_state_cb)
 
         '''
         TODO: Add a subscriber for /obstacle_waypoint
@@ -68,8 +69,9 @@ class WaypointUpdater(object):
 
         self.waypoints = None
         self.current_pose = None
-        self.red_light_wp = None
-        self.last_loc = None
+        self.red_light_wp = -1
+        self.last_wp_id = None
+        self.upcoming_light_state = None
         rospy.spin()
 
     # Callback for the position updater topic
@@ -94,6 +96,9 @@ class WaypointUpdater(object):
         rospy.loginfo("Closest traffic light at idx: %d", light_idx.data)
         
         self.red_light_wp = light_idx.data 
+
+    def traffic_state_cb(self, traffic_light):
+        self.upcoming_light_state = traffic_light.state 
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -125,7 +130,16 @@ class WaypointUpdater(object):
         min_dist = sys.maxsize
         min_loc = None
         
-        for i, waypoint in enumerate(self.waypoints):
+        start_index = 0
+        end_index = len(self.waypoints)
+
+        if self.last_wp_id is not None:
+            start_index = self.last_wp_id - 20
+            end_index = self.last_wp_id + 20
+
+        #for i, waypoint in enumerate(self.waypoints):
+        for i in range(start_index, end_index):
+            waypoint = self.waypoints[i]
             wp_x = waypoint.pose.pose.position.x
             wp_y = waypoint.pose.pose.position.y
             # distance calulated with distance formula... sqrt((x1 - x2)^2 + (y1 - y2)^2)
@@ -139,7 +153,7 @@ class WaypointUpdater(object):
 
         closest_wp = self.waypoints[min_loc]
         closest_wp_pos = closest_wp.pose.pose.position
-        
+        self.last_wp_id = min_loc
         rospy.loginfo("Closest waypoint- idx:%d x:%f y:%f", min_loc, closest_wp_pos.x, closest_wp_pos.y);
         # Now that we have the shortest distance, get the next LOOKAHEAD_WPS waypoints.
         # This next line ensures that we loop around to the start of the list if we've hit the end.
@@ -172,12 +186,12 @@ class WaypointUpdater(object):
         - Doug
         '''
         current_velocity = self.get_waypoint_velocity(closest_wp)
-        is_red_light_ahead = self.red_light_wp != -1
-        
+        wp_delta = self.red_light_wp - min_loc
+        is_red_light_ahead = (self.red_light_wp != -1 and wp_delta < 250 and self.upcoming_light_state == TrafficLight.RED)
         # If this error is thrown, need to rework solution. This means that the traffic light waypoint
         # is behind the car. Hopefully this doesn't happen
         if is_red_light_ahead and self.red_light_wp <= min_loc:
-            rospy.logerr("Red light idx is behind closest waypoint idx. Need to rework our solution")
+            rospy.loginfo("Red light idx is behind closest waypoint idx. Need to rework our solution")
             return  
 
         # Iterate through all the next waypoints and adjust their speed
@@ -195,14 +209,16 @@ class WaypointUpdater(object):
             else:
                 # calculate the number of waypoints between the light & the wp closest to car
                 wp_delta = self.red_light_wp - min_loc
+                
 
                 # decide how much we'll slow down at each waypoint before the light
                 velocity_step_down = current_velocity / wp_delta
 
                 # Determine the velocity for this waypoint and set it
-                new_velocity = current_velocity - (i * velocity_step_down)
+                new_velocity = max(0,current_velocity - (velocity_step_down))
                 self.set_waypoint_velocity(next_wps, i, new_velocity)
 
+        #self.red_light_wp = -1
         rospy.loginfo("Publishing next waypoints to final_waypoints")
         lane = Lane()
         lane.waypoints = next_wps
