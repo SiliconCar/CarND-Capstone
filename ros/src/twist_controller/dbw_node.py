@@ -31,6 +31,9 @@ that we have created in the `__init__` function.
 
 '''
 
+import collections as cl
+Gains = cl.namedtuple('Gains', 'Kp Ki Kd')  # Data structure for holding PID gains
+
 class DBWNode(object):
     def __init__(self):
         rospy.init_node('dbw_node')
@@ -46,6 +49,13 @@ class DBWNode(object):
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
 
+        throttle_gains = Gains(rospy.get_param('~throttle_Kp', 0.0),
+                               rospy.get_param('~throttle_Ki', 0.0),
+                               rospy.get_param('~throttle_Kd', 0.0))
+        steering_gains = Gains(rospy.get_param('~steering_Kp', 0.0),
+                               rospy.get_param('~steering_Ki', 0.0),
+                               rospy.get_param('~steering_Kd', 0.0))
+
         # Publishers
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
                                          SteeringCmd, queue_size=1)
@@ -56,7 +66,8 @@ class DBWNode(object):
 
         # TODO: Pass params to `Controller` constructor
         self.controller = Controller(wheel_base=wheel_base, steer_ratio=steer_ratio, min_speed=2,
-                                     max_lat_accel=max_lat_accel, max_steer_angle=max_steer_angle)
+                                     max_lat_accel=max_lat_accel, max_steer_angle=max_steer_angle,
+                                     throttle_gains=throttle_gains, steering_gains=steering_gains)
 
         # Subscriptions
         rospy.Subscriber('/dbw_enabled', Bool, self.dbw_enabled_cb)
@@ -82,9 +93,9 @@ class DBWNode(object):
             #                                                     <any other argument you need>)
             if self.twist_cmd is None or self.current_velocity is None:
                 continue
-            
-            throttle, brake, steering = self.controller.control(self.twist_cmd.twist.linear, 
-                self.twist_cmd.twist.angular, 
+
+            throttle, brake, steering = self.controller.control(self.twist_cmd.twist.linear,
+                self.twist_cmd.twist.angular,
                 self.current_velocity.twist.linear,
                 self.dbw_enabled)
 
