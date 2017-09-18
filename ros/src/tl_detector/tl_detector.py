@@ -97,7 +97,7 @@ class TLDetector(object):
         self.state_count += 1
 
 
-     def image_cb_extended(self, msg):
+    def image_cb_extended(self, msg):
         """Identifies all traffic lights in the incoming camera image and publishes the index
             of the waypoint closest to the traffic light to /all_tl_waypoint
 
