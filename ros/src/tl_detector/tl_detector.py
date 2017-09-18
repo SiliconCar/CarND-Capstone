@@ -122,11 +122,11 @@ class TLDetector(object):
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
             #light_wp = light_wp if state == TrafficLight.RED else -1
-            self.last_wp = self.light_wp
+            self.last_wp = light_wp
             tl_status_msg = TLStatus()
             tl_status_msg.header.frame_id = '/world'
             tl_status_msg.header.stamp = rospy.Time(0)
-            tl_status_msg.waypoint = self.light_wp
+            tl_status_msg.waypoint = light_wp
             tl_status_msg.state = self.state
             self.upcoming_traffic_light_pub.publish(tl_status_msg)
         else:
