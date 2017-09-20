@@ -4,6 +4,7 @@ from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, Pose
 from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
+from styx_msgs.msg import TLStatus
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
@@ -13,7 +14,7 @@ import yaml
 import math
 
 
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 0
 
 class TLDetector(object):
     def __init__(self):
@@ -35,13 +36,13 @@ class TLDetector(object):
         testing your solution in real life so don't rely on it in the final submission.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb_extended, queue_size=1)
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
-        self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
-        self.upcoming_light_pub = rospy.Publisher('/upcoming_traffic_light', TrafficLight, queue_size=1)
+        #self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
+        self.upcoming_traffic_light_pub = rospy.Publisher('/all_traffic_waypoint', TLStatus, queue_size=1)
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
@@ -63,9 +64,9 @@ class TLDetector(object):
     def traffic_cb(self, msg):
         self.lights = msg.lights
 
-    def image_cb(self, msg):
-        """Identifies red lights in the incoming camera image and publishes the index
-            of the waypoint closest to the red light to /traffic_waypoint
+    def image_cb_extended(self, msg):
+        """Identifies all traffic lights in the incoming camera image and publishes the index
+            of the waypoint closest to the traffic light to /all_tl_waypoint
 
         Args:
             msg (Image): image from car-mounted camera
@@ -74,33 +75,37 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
-
+	rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
+        
         '''
         Publish upcoming red lights at camera frequency.
         Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
-        #if(state == TrafficLight.RED):
-        traffic_light = TrafficLight()
-        traffic_light.state = state 
-        self.upcoming_light_pub.publish(traffic_light)
-        self.upcoming_red_light_pub.publish(Int32(light_wp))
-
-            
-
-        """if self.state != state:
+        if self.state != state:
             self.state_count = 0
             self.state = state
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-            light_wp = light_wp if state == TrafficLight.RED else -1
+            #light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
-            self.upcoming_red_light_pub.publish(Int32(light_wp))
+            tl_status_msg = TLStatus()
+            tl_status_msg.header.frame_id = '/world'
+            tl_status_msg.header.stamp = rospy.Time(0)
+            tl_status_msg.waypoint = light_wp
+            tl_status_msg.state = self.state
+            self.upcoming_traffic_light_pub.publish(tl_status_msg)
         else:
-            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-        self.state_count += 1"""
+            # we keep publishing the last state and wp until it gets confirmed.
+            tl_status_msg = TLStatus()
+            tl_status_msg.header.frame_id = '/world'
+            tl_status_msg.header.stamp = rospy.Time(0)
+            tl_status_msg.waypoint = self.last_wp
+            tl_status_msg.state = self.last_state
+            self.upcoming_traffic_light_pub.publish(tl_status_msg)
+        self.state_count += 1
+
 
     def get_closest_waypoint(self, pose):
         """Identifies the closest path waypoint to the given position
