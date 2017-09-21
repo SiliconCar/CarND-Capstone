@@ -29,8 +29,8 @@ class Controller(object):
 
         throttle = 0.3 if current_v.x < (MAX_SPEED*ONE_MPH) else 0.0
         brake  = 0.0
-        steer = current_v.x * self.yaw_control.get_steering(v.x, w.z, current_v.x)
-        if(v.x <= 1.0):
+        steer = current_v.x * self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
+        if(target_v.x <= 1.0):
             brake = 6.0
             throttle = 0.0
             #steer = 0.0
