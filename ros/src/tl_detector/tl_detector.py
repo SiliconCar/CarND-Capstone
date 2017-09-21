@@ -230,11 +230,11 @@ class TLDetector(object):
         #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
         light_state = None
 	
-	    for tl in self.lights:
-	        dist = math.sqrt((tl.pose.pose.position.x - light.position.x)**2 + (tl.pose.pose.position.y - light.position.y)**2)
-            	if (dist < 50): #means we found the light close to the stop line
-        	    light_state = tl.state
-		    break #no need to parse other lights once light was found
+	for tl in self.lights:
+	    dist = math.sqrt((tl.pose.pose.position.x - light.position.x)**2 + (tl.pose.pose.position.y - light.position.y)**2)
+            if (dist < 50): #means we found the light close to the stop line
+                light_state = tl.state
+	        break #no need to parse other lights once light was found
         
         return light_state
         #return self.light_classifier.get_classification(cv_image)
@@ -265,10 +265,10 @@ class TLDetector(object):
         #car position is the indice of the waypoint closest to the car.
         #light_positions include all the traffic light positions. We parse them one at a time.        
         for light_stop_position in light_stop_positions:
-	        light_stop_pose = Pose()
-	        light_stop_pose.position.x = light_stop_position[0]
-	        light_stop_pose.position.y = light_stop_position[1]
-	        light_stop_wp = self.get_closest_waypoint(light_stop_pose)     #get the wp closest to each light_position
+	    light_stop_pose = Pose()
+	    light_stop_pose.position.x = light_stop_position[0]
+	    light_stop_pose.position.y = light_stop_position[1]
+	    light_stop_wp = self.get_closest_waypoint(light_stop_pose)     #get the wp closest to each light_position
             if light_stop_wp >= car_position :    #it found a waypoint close to the traffic light and ahead of the car
                 if closest_light_stop_wp is None:    #check if this is the first light we process
                     closest_light_stop_wp = light_stop_wp
