@@ -185,11 +185,11 @@ class TLDetector(object):
         #search the stop line waypoint which is the closest to closest_light_wp
         min_dist = 10000
         for light_stop_position in light_stop_positions:
-	        #convert 2D position into Pose format to get closest waypoint
-	        light_stop_pose = Pose()
-	        light_stop_pose.position.x = light_stop_position[0]
-	        light_stop_pose.position.y = light_stop_position[1]
-	        light_stop_wp = self.get_closest_waypoint(light_stop_pose)     #get the wp closest to each light_position
+	    #convert 2D position into Pose format to get closest waypoint
+	    light_stop_pose = Pose()
+	    light_stop_pose.position.x = light_stop_position[0]
+	    light_stop_pose.position.y = light_stop_position[1]
+	    light_stop_wp = self.get_closest_waypoint(light_stop_pose)     #get the wp closest to each light_position
             dist = abs(closest_light_wp - light_stop_wp)
             if dist < min_dist:
                 min_dist = dist
@@ -261,8 +261,8 @@ class TLDetector(object):
         light_state = None
         for tl in self.lights:
             if (tl.pose.pose.position == light.pose.pose.position): #means we found the matching light
-		        light_state = tl.state
-		        break #no need to parse other lights once light was found
+		light_state = tl.state
+		break #no need to parse other lights once light was found
         
         return light_state
         #return self.light_classifier.get_classification(cv_image)
@@ -283,7 +283,7 @@ class TLDetector(object):
         
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
-	        rospy.loginfo("Car position (at Wp index): %s", car_position)
+	    rospy.loginfo("Car position (at Wp index): %s", car_position)
         #TODO find the closest visible traffic light (if one exists)
         # we also want to make sure the traffic light is ahead of us (not behind)
         # we use closest_waypoint for both car position and light positions
