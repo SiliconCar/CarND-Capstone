@@ -169,7 +169,7 @@ class TLDetector(object):
         return min_loc
 
 
-    def find_stop_line(closest_light_wp):
+    def find_stop_line(self, closest_light_wp):
         """Find waypoint for stop line associated to light waypoint
 
         Args:
@@ -303,7 +303,7 @@ class TLDetector(object):
         if light:
             state = self.get_light_state(light) #get the state of the light
             #we need to find the stop line which is close to the light
-            closest_stop_line_wp = find_stop_line(closest_light_wp)
+            closest_stop_line_wp = self.find_stop_line(closest_light_wp)
             return closest_stop_line_wp, state
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
