@@ -179,12 +179,12 @@ class TLDetector(object):
             closest_stop_line_wp: waypoint closest to the stop line before the light
 
         """
-        light_stop_positions = self.config['light_positions']
+	stop_line_positions = self.config['stop_line_positions']
         closest_light_stop_wp = None
         
         #search the stop line waypoint which is the closest to closest_light_wp
         min_dist = 10000
-        for light_stop_position in light_stop_positions:
+        for light_stop_position in stop_line_positions:
 	    #convert 2D position into Pose format to get closest waypoint
 	    light_stop_pose = Pose()
 	    light_stop_pose.position.x = light_stop_position[0]
