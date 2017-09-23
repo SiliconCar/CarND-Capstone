@@ -35,24 +35,15 @@ class TLDetector(object):
         help you work on another single component of the node. This topic won't be available when
         testing your solution in real life so don't rely on it in the final submission.
         '''
-<<<<<<< HEAD
-        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
-=======
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb_extended)
->>>>>>> master
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
-<<<<<<< HEAD
-        self.upcoming_light_pub = rospy.Publisher('/upcoming_traffic_light', TrafficLight, queue_size=1)
-=======
         self.upcoming_traffic_light_pub = rospy.Publisher('/all_traffic_waypoint', TLStatus, queue_size=1)
 
->>>>>>> master
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
@@ -201,7 +192,7 @@ class TLDetector(object):
         """
 	stop_line_positions = self.config['stop_line_positions']
         closest_light_stop_wp = None
-        
+
         #search the stop line waypoint which is the closest to closest_light_wp
         min_dist = 10000
         for light_stop_position in stop_line_positions:
@@ -214,7 +205,7 @@ class TLDetector(object):
             if dist < min_dist:
                 min_dist = dist
                 closest_light_stop_wp = light_stop_wp
-            
+
         return closest_light_stop_wp
 
 
@@ -276,25 +267,12 @@ class TLDetector(object):
         #TODO use light location to zoom in on traffic light in image
 
         #Get classification
-<<<<<<< HEAD
-
-        #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
-        light_state = None
-        for tl in self.lights:
-            if (tl.pose.pose.position == light.pose.pose.position): #means we found the matching light
-		        light_state = tl.state
-		        break #no need to parse other lights once light was found
-
-=======
-        
-        #Until we integrate the classifier, let's search light in self.lights (fed by sub3) and return light state
         light_state = None
         for tl in self.lights:
             if (tl.pose.pose.position == light.pose.pose.position): #means we found the matching light
 		light_state = tl.state
 		break #no need to parse other lights once light was found
-        
->>>>>>> master
+
         return light_state
         #return self.light_classifier.get_classification(cv_image)
 
@@ -311,7 +289,7 @@ class TLDetector(object):
         closest_light_wp = None
 
         # we receive the light positions and need to find the closest to car_position
-        
+
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
 	    rospy.loginfo("Car position (at Wp index): %s", car_position)
