@@ -41,7 +41,7 @@ class Controller(object):
             brake  = -3.0*error_v   # Proportional braking
         else:
             brake = 0.0
-        steer = current_v.x * self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
+        steer = self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
         # if(target_v.x <= 1.0):
         #     brake = 6.0
         #     throttle = 0.0

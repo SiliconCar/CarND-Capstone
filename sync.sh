@@ -1,2 +1,2 @@
 #!/bin/bash
-rsync -arzvh --exclude='.git/' --exclude='ros/build' --exclude='ros/devel' ./ $1
+rsync -arzvh --exclude='*.pyc' --exclude='.git/' --exclude='ros/build' --exclude='ros/devel' ./ $1
