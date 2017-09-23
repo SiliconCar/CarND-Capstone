@@ -187,9 +187,9 @@ class WaypointUpdater(object):
         - Doug
         '''
         current_velocity = self.get_waypoint_velocity(closest_wp)
-        wp_delta = self.red_light_wp - min_loc
+        wp_delta = self.red_light_wp - min_loc - 5 # Extra buffer before stopping line
         is_red_light_ahead = (self.red_light_wp != -1
-                              and wp_delta < 100)
+                              and wp_delta < 50)
                               #and self.upcoming_light_state == TrafficLight.RED)
         # If this error is thrown, need to rework solution. This means that the traffic light waypoint
         # is behind the car. Hopefully this doesn't happen
@@ -197,7 +197,7 @@ class WaypointUpdater(object):
             rospy.loginfo("WPUpdater: Red light idx is behind closest waypoint idx. Need to rework our solution")
             return
 
-        # rospy.loginfo('is ahead : %d, %d, %d, next_wps:%d' %(self.red_light_wp != -1, wp_delta, self.upcoming_light_state == TrafficLight.RED, len(next_wps)))
+        slowdown_rate = (current_velocity/min(5, wp_delta))
         # Iterate through all the next waypoints and adjust their speed
         for i in range(len(next_wps) - 1):
             '''
@@ -212,14 +212,15 @@ class WaypointUpdater(object):
             # There's a red light and we're at a waypoint before the red light waypoint
             else:
                 # calculate the number of waypoints between the light & the wp closest to car
-                wp_delta = self.red_light_wp - min_loc
+                wp_delta_i = self.red_light_wp - min_loc - 5
+                target_vel = current_velocity - wp_delta_i*slowdown_rate
                 # rospy.loginfo('WPUpdater: Waypoints till redlight %d' % wp_delta)
 
                 # decide how much we'll slow down at each waypoint before the light
-                velocity_step_down = current_velocity / wp_delta
+                # velocity_step_down = current_velocity / wp_delta
 
                 # Determine the velocity for this waypoint and set it
-                new_velocity = max(0,current_velocity - (velocity_step_down))
+                new_velocity = max(0, target_vel)
                 self.set_waypoint_velocity(next_wps, i, new_velocity)
 
         #self.red_light_wp = -1
