@@ -1,6 +1,8 @@
 from yaw_controller import YawController
 from lowpass import LowPassFilter
 from pid import PID
+import time
+
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 MAX_SPEED = 20.0
@@ -29,15 +31,16 @@ class Controller(object):
         # Get throttle value from controller
         if self.last_t is None:
             self.last_t = time.time()
+            return 0.0, 0.0, 0.0
 
         dt = time.time() - self.last_t
-        target_v = min(target_v, MAX_SPEED*ONE_MPH)
-        error_v = target_v - current_v
+        error_v = min(target_v.x, MAX_SPEED*ONE_MPH) - current_v.x
         throttle = self.throttle_pid.step(error_v, dt)
 
         if error_v < -1:
             brake  = -3.0*error_v   # Proportional braking
-
+        else:
+            brake = 0.0
         steer = current_v.x * self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
         # if(target_v.x <= 1.0):
         #     brake = 6.0
