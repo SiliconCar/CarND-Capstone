@@ -189,7 +189,7 @@ class WaypointUpdater(object):
         current_velocity = self.get_waypoint_velocity(closest_wp)
         wp_delta = self.red_light_wp - min_loc - 5 # Extra buffer before stopping line
         is_red_light_ahead = (self.red_light_wp != -1
-                              and wp_delta < 50)
+                              and wp_delta < 75)
                               #and self.upcoming_light_state == TrafficLight.RED)
         # If this error is thrown, need to rework solution. This means that the traffic light waypoint
         # is behind the car. Hopefully this doesn't happen
@@ -210,11 +210,13 @@ class WaypointUpdater(object):
             if not is_red_light_ahead or i > self.red_light_wp:
                 self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
             # There's a red light and we're at a waypoint before the red light waypoint
+            elif self.red_light_wp - i < 5 : # Within 5 waypoints -> STOP
+                self.set_waypoint_velocity(next_wps, i, 0)
             else:
+
                 # calculate the number of waypoints between the light & the wp closest to car
-                wp_delta_i = self.red_light_wp - min_loc - 5
+                wp_delta_i = self.red_light_wp - min_loc
                 target_vel = current_velocity - wp_delta_i*slowdown_rate
-                # rospy.loginfo('WPUpdater: Waypoints till redlight %d' % wp_delta)
 
                 # decide how much we'll slow down at each waypoint before the light
                 # velocity_step_down = current_velocity / wp_delta
