@@ -189,7 +189,7 @@ class WaypointUpdater(object):
         current_velocity = self.get_waypoint_velocity(closest_wp)
         wp_delta = self.red_light_wp - min_loc
         is_red_light_ahead = (self.red_light_wp != -1
-                              and wp_delta < 150)
+                              and wp_delta < 100)
                               #and self.upcoming_light_state == TrafficLight.RED)
         # If this error is thrown, need to rework solution. This means that the traffic light waypoint
         # is behind the car. Hopefully this doesn't happen
