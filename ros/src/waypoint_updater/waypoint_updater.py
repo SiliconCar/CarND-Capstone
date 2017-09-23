@@ -37,7 +37,7 @@ For every message on the 'current_pose' topic:
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
 MAX_SPEED_METERS_PER_SEC = 20*0.447
-
+SLOWDOWN_WPS = 100 # Number of waypoints before traffic light to start slowing down
 
 
 class WaypointUpdater(object):
@@ -78,7 +78,7 @@ class WaypointUpdater(object):
     def pose_cb(self, msg):
         self.current_pose = msg.pose
         # rospy.loginfo("WPUpdater: Car position updated to %s", self.current_pose)
-
+        self.send_next_waypoints()
 
     # Callback for the waypoints updater topic
     def waypoints_cb(self, lane):
@@ -198,7 +198,9 @@ class WaypointUpdater(object):
             rospy.loginfo("WPUpdater: Red light idx is behind closest waypoint idx. Need to rework our solution")
             return
 
-        slowdown_rate = (current_velocity/max(1, wp_delta))
+        # slowdown_rate = (current_velocity/max(1, wp_delta))*0.9
+        # rospy.loginfo('slowdown rate %f',slowdown_rate)
+        slope = (MAX_SPEED_METERS_PER_SEC/SLOWDOWN_WPS)
         # Iterate through all the next waypoints and adjust their speed
         for i in range(len(next_wps) - 1):
             '''
@@ -211,17 +213,13 @@ class WaypointUpdater(object):
             if not is_red_light_ahead or i > self.red_light_wp:
                 self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
             # There's a red light and we're at a waypoint before the red light waypoint
-            elif self.red_light_wp - i < 5 : # Within 5 waypoints -> STOP
-                self.set_waypoint_velocity(next_wps, i, 0)
-            else:
-                # calculate the number of waypoints between the light & the wp closest to car
-                wp_delta_i = self.red_light_wp - min_loc
-                target_vel = current_velocity - wp_delta_i*slowdown_rate
-
-                # decide how much we'll slow down at each waypoint before the light
-                # velocity_step_down = current_velocity / wp_delta
-
+            else: # Within 100 waypoints -> slow down:
                 # Determine the velocity for this waypoint and set it
+                wp_to_go = self.red_light_wp - min_loc - i
+                if wp_to_go < 5:
+                    target_vel = 0.0
+                else:
+                    target_vel = MAX_SPEED_METERS_PER_SEC - (SLOWDOWN_WPS - wp_to_go)*slope
                 new_velocity = max(0, target_vel)
                 self.set_waypoint_velocity(next_wps, i, new_velocity)
 
