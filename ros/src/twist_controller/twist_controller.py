@@ -43,6 +43,11 @@ class Controller(object):
             throttle = 0.0
         else:
             brake = 0.0
+
+        # Special case for stopping
+        if abs(target_v.x) < 0.1:
+            brake = 12.0
+            
         steer = self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
         # if(target_v.x <= 1.0):
         #     brake = 6.0
