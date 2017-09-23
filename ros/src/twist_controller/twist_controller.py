@@ -15,6 +15,7 @@ class Controller(object):
                                          kwargs['max_steer_angle'],
                                          kwargs['steering_gains']
                                          )
+        self.last_t = None
         #self.filter = LowPassFilter(0.2,0.1)
 
     '''
@@ -25,18 +26,24 @@ class Controller(object):
     dbw_enabled - drive by wire enabled (ignore error in this case)
 	'''
     def control(self, target_v, target_w, current_v, dbw_enabled):
-        # TODO Return throttle, brake, steer
+        # Get throttle value from controller
+        if self.last_t is None:
+            self.last_t = time.time()
 
-        throttle = 0.3 if current_v.x < (MAX_SPEED*ONE_MPH) else 0.0
-        brake  = 0.0
+        dt = time.time() - self.last_t
+        target_v = min(target_v, MAX_SPEED*ONE_MPH)
+        error_v = target_v - current_v
+        throttle = self.throttle_pid.step(error_v, dt)
+
+        if error_v < -1:
+            brake  = -3.0*error_v   # Proportional braking
+
         steer = current_v.x * self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
-        if(target_v.x <= 1.0):
-            brake = 6.0
-            throttle = 0.0
-            #steer = 0.0
-        #brake = 0.0 if current_v.x < MAX_SPEED else 4.47
-
-        # Need to think of something better than a constant to scale the steering
+        # if(target_v.x <= 1.0):
+        #     brake = 6.0
+        #     throttle = 0.0
+        #     #steer = 0.0
 
         #steer = self.filter.filt(steer)
+        self.last_t = time.time()
         return throttle, brake, steer
