@@ -13,7 +13,7 @@
     <include file="$(find waypoint_follower)/launch/pure_pursuit.launch"/>
 
     <!--Waypoint Updater Node -->
-    <include file="$(find waypoint_updater)/launch/waypoint_updater.launch"/>
+    <include file="$(find waypoint_updater)/launch/waypoint_updater.launch" />
 
     <!--Traffic Light Detector Node -->
     <include file="$(find tl_detector)/launch/tl_detector.launch"/>

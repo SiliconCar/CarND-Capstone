@@ -36,7 +36,7 @@ class TLDetector(object):
         rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb_extended)
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb) # _extended
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -75,7 +75,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
+        # rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -107,7 +107,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("The next traffic light state is %s with stop line at wp: %s", state, light_wp)
+        # rospy.loginfo("The next traffic light state is %s with stop line at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -251,17 +251,15 @@ class TLDetector(object):
         """
         light = None
         closest_light_stop_wp = None
-#         Modifed on merge -- Thomas
-#         # we receive the light positions and need to find the closest to car_position
-#
-#         light_stop_positions = self.config['light_positions']
-# =======
-#
+
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
-            rospy.loginfo("Car position (at Wp index): %s", car_position)
+            # rospy.loginfo("Car position (at Wp index): %s", car_position)
+        else:
+            return -1, TrafficLight.UNKNOWN
+
         #TODO find the closest visible traffic light (if one exists)
         # we also want to make sure the traffic light is ahead of us (not behind)
         # we may need to add a threshold to ensure that we're not too far away in terms of waypoints

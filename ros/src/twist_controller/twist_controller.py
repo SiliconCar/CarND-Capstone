@@ -5,7 +5,7 @@ import time
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
-MAX_SPEED = 20.0
+MAX_SPEED = 40.0
 
 
 class Controller(object):
@@ -29,16 +29,18 @@ class Controller(object):
 	'''
     def control(self, target_v, target_w, current_v, dbw_enabled):
         # Get throttle value from controller
-        if self.last_t is None:
+        if self.last_t is None or not dbw_enabled:
             self.last_t = time.time()
             return 0.0, 0.0, 0.0
 
         dt = time.time() - self.last_t
         error_v = min(target_v.x, MAX_SPEED*ONE_MPH) - current_v.x
         throttle = self.throttle_pid.step(error_v, dt)
-
-        if error_v < -1:
-            brake  = -3.0*error_v   # Proportional braking
+        throttle = max(0.0, min(1.0, throttle))
+        if error_v < 0:
+            brake = -10.0*error_v   # Proportional braking
+            brake = max(brake, 6.0)
+            throttle = 0.0
         else:
             brake = 0.0
         steer = self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
