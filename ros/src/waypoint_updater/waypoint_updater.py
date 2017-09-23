@@ -78,7 +78,7 @@ class WaypointUpdater(object):
     def pose_cb(self, msg):
         self.current_pose = msg.pose
         # rospy.loginfo("WPUpdater: Car position updated to %s", self.current_pose)
-        self.send_next_waypoints()
+
 
     # Callback for the waypoints updater topic
     def waypoints_cb(self, lane):
@@ -96,6 +96,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, light_idx):
         # rospy.loginfo("WPUpdater: Closest red traffic light at idx: %d", light_idx.data)
         self.red_light_wp = light_idx.data
+        self.send_next_waypoints()
 
     def traffic_state_cb(self, traffic_light):
         rospy.loginfo("WPUpdater: Upcoming light state: %d", traffic_light.state)
