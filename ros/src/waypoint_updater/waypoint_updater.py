@@ -96,7 +96,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, light_idx):
         # rospy.loginfo("WPUpdater: Closest red traffic light at idx: %d", light_idx.data)
         self.red_light_wp = light_idx.data
-        self.send_next_waypoints()
+        # self.send_next_waypoints()
 
     def traffic_state_cb(self, traffic_light):
         rospy.loginfo("WPUpdater: Upcoming light state: %d", traffic_light.state)
