@@ -38,8 +38,8 @@ class Controller(object):
         throttle = self.throttle_pid.step(error_v, dt)
         throttle = max(0.0, min(1.0, throttle))
         if error_v < 0:
-            brake = -6.0*error_v   # Proportional braking
-            # brake = max(brake, 1.0)
+            brake = -10.0*error_v   # Proportional braking
+            brake = max(brake, 1.0)
             throttle = 0.0
         else:
             brake = 0.0
