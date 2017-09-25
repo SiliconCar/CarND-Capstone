@@ -170,70 +170,70 @@ class TLDetector(object):
         return min_loc
 
     def project_to_image_plane(self, point_in_world):
-    """Project point from 3D world coordinates to 2D camera image location
-    Args:
-        point_in_world (Point): 3D location of a point in the world
-    Returns:
-        x (int): x coordinate of target point in image
-        y (int): y coordinate of target point in image
-    """
+		"""Project point from 3D world coordinates to 2D camera image location
+		Args:
+		point_in_world (Point): 3D location of a point in the world
+		Returns:
+		x (int): x coordinate of target point in image
+		y (int): y coordinate of target point in image
+		"""
 
-    fx = self.config['camera_info']['focal_length_x']
-    fy = self.config['camera_info']['focal_length_y']
-    image_width = self.config['camera_info']['image_width']
-    image_height = self.config['camera_info']['image_height']
-    cx = image_width/2
-    cy = image_height/2
+		fx = self.config['camera_info']['focal_length_x']
+		fy = self.config['camera_info']['focal_length_y']
+		image_width = self.config['camera_info']['image_width']
+		image_height = self.config['camera_info']['image_height']
+		cx = image_width/2
+		cy = image_height/2
 
-    # get transform between pose of camera and world frame
-    trans = None
-    rot = None
-    x = 0
-    y = 0
-    try:
-        now = rospy.Time.now()
-        self.listener.waitForTransform("/base_link",
-              "/world", now, rospy.Duration(1.0))
-        (trans, rot) = self.listener.lookupTransform("/base_link",
-              "/world", now)
+		# get transform between pose of camera and world frame
+		trans = None
+		rot = None
+		x = 0
+		y = 0
+		try:
+			now = rospy.Time.now()
+			self.listener.waitForTransform("/base_link",
+				  "/world", now, rospy.Duration(1.0))
+			(trans, rot) = self.listener.lookupTransform("/base_link",
+				  "/world", now)
 
-    except (tf.Exception, tf.LookupException, tf.ConnectivityException):
-        rospy.logerr("Failed to find camera to map transform")
-        return None, None
+		except (tf.Exception, tf.LookupException, tf.ConnectivityException):
+			rospy.logerr("Failed to find camera to map transform")
+			return None, None
 
-    rpy = tf.transformations.euler_from_quaternion(rot)
-    yaw = rpy[2]
+		rpy = tf.transformations.euler_from_quaternion(rot)
+		yaw = rpy[2]
 
-    (ptx, pty, ptz) = (point_in_world.pose.pose.position.x, point_in_world.pose.pose.position.y, point_in_world.pose.pose.position.z)
+		(ptx, pty, ptz) = (point_in_world.pose.pose.position.x, point_in_world.pose.pose.position.y, point_in_world.pose.pose.position.z)
 
-    point_to_cam = (ptx * math.cos(yaw) - pty * math.sin(yaw),
-                    ptx * math.sin(yaw) + pty * math.cos(yaw), 
-                    ptz)
-    point_to_cam = [sum(x) for x in zip(point_to_cam, trans)]
+		point_to_cam = (ptx * math.cos(yaw) - pty * math.sin(yaw),
+				ptx * math.sin(yaw) + pty * math.cos(yaw), 
+				ptz)
+		point_to_cam = [sum(x) for x in zip(point_to_cam, trans)]
 
-    ##########################################################################################
-    # DELETE THIS MAYBE - MANUAL TWEAKS TO GET THE PROJECTION TO COME OUT CORRECTLY IN SIMULATOR
-    # just override the simulator parameters. probably need a more reliable way to determine if 
-    # using simulator and not real car
-    if fx < 10:
-        fx = 2574
-        fy = 2744
-        point_to_cam[2] -= 1.0
-	cx = image_height/2 + 70
-  	cy = image_height + 50
-  ##########################################################################################
+		##########################################################################################
+		# DELETE THIS MAYBE - MANUAL TWEAKS TO GET THE PROJECTION TO COME OUT CORRECTLY IN SIMULATOR
+		# just override the simulator parameters. probably need a more reliable way to determine if 
+		# using simulator and not real car
+		if fx < 10:
+			fx = 2574
+			fy = 2744
+			point_to_cam[2] -= 1.0
+			cx = image_height/2 + 70
+			cy = image_height + 50
+	  ##########################################################################################
 
-    #rospy.loginfo_throttle(3, "camera to traffic light: " + str(point_to_cam))
+		#rospy.loginfo_throttle(3, "camera to traffic light: " + str(point_to_cam))
 
-    x = -point_to_cam[1] * fx / point_to_cam[0]; 
-    y = -point_to_cam[2] * fy / point_to_cam[0]; 
+		x = -point_to_cam[1] * fx / point_to_cam[0]; 
+		y = -point_to_cam[2] * fy / point_to_cam[0]; 
 
-    x = int(x + cx)
-    y = int(y + cy) 
+		x = int(x + cx)
+		y = int(y + cy) 
 
-    #rospy.loginfo_throttle(3, "traffic light pixel (x,y): " + str(x) + "," + str(y))
+		#rospy.loginfo_throttle(3, "traffic light pixel (x,y): " + str(x) + "," + str(y))
 
-    return (x, y)
+		return (x, y)
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
