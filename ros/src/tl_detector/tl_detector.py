@@ -204,7 +204,7 @@ class TLDetector(object):
 		rpy = tf.transformations.euler_from_quaternion(rot)
 		yaw = rpy[2]
 
-		(ptx, pty, ptz) = (point_in_world.pose.pose.position.x, point_in_world.pose.pose.position.y, point_in_world.pose.pose.position.z)
+		(ptx, pty, ptz) = (point_in_world.position.x, point_in_world.position.y, point_in_world.position.z)
 
 		point_to_cam = (ptx * math.cos(yaw) - pty * math.sin(yaw),
 				ptx * math.sin(yaw) + pty * math.cos(yaw), 
