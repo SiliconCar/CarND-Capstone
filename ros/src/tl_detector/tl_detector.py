@@ -314,7 +314,7 @@ class TLDetector(object):
 
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
-            rospy.loginfo("Car position (at Wp Index: %s", car_position)
+            #rospy.loginfo("Car position (at Wp Index: %s", car_position)
 
             for light_pose in self.lights:
                 light_wp = self.get_closest_waypoint(light_pose.pose.pose)
