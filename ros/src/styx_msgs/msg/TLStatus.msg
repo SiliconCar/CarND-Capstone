@@ -1,5 +1,5 @@
 Header header
-uint32 waypoint
+int32 waypoint
 uint8 state
 
 uint8 UNKNOWN=4
