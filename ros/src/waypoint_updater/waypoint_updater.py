@@ -2,7 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import PoseStamped
-from styx_msgs.msg import Lane, Waypoint, TrafficLight
+from styx_msgs.msg import Lane, Waypoint, TrafficLight, TLStatus
 from std_msgs.msg import Int32
 
 import math, sys
@@ -53,8 +53,8 @@ class WaypointUpdater(object):
         """
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
-        rospy.Subscriber('/upcoming_traffic_light',TrafficLight,self.traffic_state_cb)
+        #rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/all_traffic_waypoint',TLStatus,self.traffic_state_cb)
 
         '''
         TODO: Add a subscriber for /obstacle_waypoint
@@ -71,7 +71,8 @@ class WaypointUpdater(object):
         self.current_pose = None
         self.red_light_wp = -1
         self.last_wp_id = None
-        self.upcoming_light_state = None
+        self.next_light_state = None
+	self.next_light_wp = None
         rospy.spin()
 
     # Callback for the position updater topic
@@ -98,9 +99,14 @@ class WaypointUpdater(object):
         self.red_light_wp = light_idx.data
         # self.send_next_waypoints()
 
-    def traffic_state_cb(self, traffic_light):
-        rospy.loginfo("WPUpdater: Upcoming light state: %d", traffic_light.state)
-        self.upcoming_light_state = traffic_light.state
+    def traffic_state_cb(self, tl_status):
+        #rospy.loginfo("WPUpdater: Upcoming light state: %d and wy: %d", tl_status.state, tl_status.waypoint)
+	self.next_light_wp = tl_status.waypoint
+        self.next_light_state = tl_status.state
+	if tl_status.state == TrafficLight.RED or tl_status.state == TrafficLight.YELLOW:
+	    self.red_light_wp = tl_status.waypoint
+	else:
+	    self.red_light_wp = -1
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
