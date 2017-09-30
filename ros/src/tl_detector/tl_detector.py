@@ -296,7 +296,7 @@ class TLDetector(object):
 
     	box = self.light_classifier.get_localization(cv_image)
         img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
-        img_np = cv2.resize(img_np, (32,32))
+        #img_np = cv2.resize(img_np, (32,32))
         #light_state = self.light_classifier.get_classification(img_np)
         for tl in self.lights:
 	    if (tl.pose.pose.position == light.pose.pose.position): # means we found the traffic light
