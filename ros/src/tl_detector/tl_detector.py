@@ -12,6 +12,7 @@ import tf
 import cv2
 import yaml
 import math
+import time
 
 
 STATE_COUNT_THRESHOLD = 3
@@ -296,13 +297,13 @@ class TLDetector(object):
 
     	box = self.light_classifier.get_localization(cv_image)
         img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
-        #img_np = cv2.resize(img_np, (32,32))
-        #light_state = self.light_classifier.get_classification(img_np)
-        for tl in self.lights:
+        light_state = self.light_classifier.get_classification(img_np)
+        rospy.loginfo("The upcoming light is %s", light_state)
+        """for tl in self.lights:
 	    if (tl.pose.pose.position == light.pose.pose.position): # means we found the traffic light
 	        light_state = tl.state
     	        break #no need to parse other lights once light was found
-
+        """
         return light_state
 
     def process_traffic_lights(self):
