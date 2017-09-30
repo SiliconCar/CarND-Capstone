@@ -3,7 +3,7 @@ set -e
 
 # Settings from environment
 UDACITY_SOURCE=${UDACITY_SOURCE:-`pwd`}
-UDACITY_IMAGE=${UDACITY_IMAGE:-bydavy/carnd-capstone}
+UDACITY_IMAGE=${UDACITY_IMAGE:-tantony/carnd-capstone-cuda}
 CONTAINER_NAME="udacity_carnd"
 
 if [ "$(docker ps -a | grep ${CONTAINER_NAME})" ]; then
