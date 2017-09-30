@@ -36,23 +36,22 @@ class TLDetector(object):
         rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb_extended) # _extended
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb_extended) # extended
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 	
-	#we don't use this publisher anymore. We publish the status of all traffic lights. Not just the red ones.
+	    #we don't use this publisher anymore. We publish the status of all traffic lights. Not just the red ones.
         #self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
         self.upcoming_traffic_light_pub = rospy.Publisher('/all_traffic_waypoint', TLStatus, queue_size=1)
-
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
         self.listener = tf.TransformListener()
-
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        print("TL Detection...initiationalization complete")
 
         rospy.spin()
 
@@ -128,7 +127,7 @@ class TLDetector(object):
             tl_status_msg.header.stamp = rospy.Time(0)
             tl_status_msg.waypoint = light_wp
             tl_status_msg.state = state
-	    #rospy.loginfo("Light Wp is %s and state is %s", light_wp, self.state)
+	        #rospy.loginfo("Light Wp is %s and state is %s", light_wp, self.state)
             self.upcoming_traffic_light_pub.publish(tl_status_msg)
         else:
             # we keep publishing the last state and wp until it gets confirmed.
@@ -136,8 +135,8 @@ class TLDetector(object):
             tl_status_msg.header.frame_id = '/world'
             tl_status_msg.header.stamp = rospy.Time(0)
             tl_status_msg.waypoint = self.last_wp
-	    tl_status_msg.state = self.last_state
-	    #rospy.loginfo("Light Wp is %s and state is %s:", self.last_wp, self.last_state)
+            tl_status_msg.state = self.last_state
+	        #rospy.loginfo("Light Wp is %s and state is %s:", self.last_wp, self.last_state)
             self.upcoming_traffic_light_pub.publish(tl_status_msg)
         self.state_count += 1
 
@@ -293,15 +292,18 @@ class TLDetector(object):
         #Get classification
 
         #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
-        light_state = None
+        light_state = TrafficLight.UNKNOWN
 
-    	for tl in self.lights:
+    	box = self.light_classifier.get_localization(cv_image)
+        img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
+        img_np = cv2.resize(img_np, (32,32))
+        #light_state = self.light_classifier.get_classification(img_np)
+        for tl in self.lights:
 	    if (tl.pose.pose.position == light.pose.pose.position): # means we found the traffic light
 	        light_state = tl.state
     	        break #no need to parse other lights once light was found
 
         return light_state
-        #return self.light_classifier.get_classification(cv_image)
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -314,26 +316,28 @@ class TLDetector(object):
         """
         light = None
         closest_light_wp = None
+        dist_to_light = 10000   #initialize to high value
 
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
-            #rospy.loginfo("Car position (at Wp Index: %s", car_position)
-
+            #rospy.loginfo("Car position (at Wp Index): %s", car_position)
             for light_pose in self.lights:
                 light_wp = self.get_closest_waypoint(light_pose.pose.pose)
                 if light_wp >= car_position:
-		    if closest_light_wp is None:
-		        closest_light_wp = light_wp
-		        light = light_pose
-		    elif light_wp < closest_light_wp:
-		        closest_light_wp = light_wp
-		        light = light_pose
+		            if closest_light_wp is None:
+		                closest_light_wp = light_wp
+		                light = light_pose
+		            elif light_wp < closest_light_wp:
+		                closest_light_wp = light_wp
+		                light = light_pose
+            if (car_position and closest_light_wp):
+                dist_to_light = abs(car_position - closest_light_wp)
 
-        if light and closest_light_wp:
-	    state = self.get_light_state(light)
+        if light and dist_to_light < 200:       #we check the status of the traffic light if it's within 200 waypoints distance
+            state = self.get_light_state(light)
             closest_stop_line_wp = self.find_stop_line(closest_light_wp)
-	    return closest_stop_line_wp, state
-        self.waypoints = None
+            return closest_stop_line_wp, state
+        #self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
