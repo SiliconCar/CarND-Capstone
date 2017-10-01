@@ -13,9 +13,9 @@ import cv2
 import yaml
 import math
 import time
+import numpy as np
 
-
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 1
 
 class TLDetector(object):
     def __init__(self):
@@ -54,6 +54,7 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        self.image_count = 0 #for saving images
         print("TL Detection...initiationalization complete")
 
         rospy.spin()
@@ -285,6 +286,8 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         #x, y = self.project_to_image_plane(light)
+        #if(x is not None and y is not None):
+        #   print("Location:",x,y)
 	#print ("Traffic Light @:", x,y)
 	#only keep this code for debugging purpose
 	#draw a small circle on the image, save the image and the point coordinates
@@ -298,35 +301,79 @@ class TLDetector(object):
         #Get classification
 
         #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
+        start = time.time()
         light_state = TrafficLight.UNKNOWN
-
-    	box = self.light_classifier.get_localization(cv_image)
-        print(box)
-
-        if sum(box) == 0:
-            return light_state
-        img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
-
+        img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
+        
+        box = self.light_classifier.get_localization(img_full_np)
         #publish image with drawn bboxes to new topic
-        cv2.rectangle(cv_image,(box[1],box[0]),(box[3],box[2]),(255,0,0),thickness=2)
+        
         #bbox_img_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
         #self.detected_light_pub.publish(bbox_img_msg)
 
         #cv2.imshow("Image window", cv_image)
         #cv2.waitKey(1)
 
+
+
+        #slight_state = self.light_classifier.get_classification(img_np)
+
+        if np.array_equal(box, np.zeros(4)):
+            #print ('unknown')
+            cv2.putText(cv_image,'No detections',(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),2,cv2.LINE_AA)
+        else:    
+           img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32)) 
+           cv2.rectangle(cv_image,(box[1],box[0]),(box[3],box[2]),(0,0,255),thickness=5)
+           self.light_classifier.get_classification(img_np)
+           print("Status: ",self.light_classifier.signal_status)
+           text = "None"
+           if(self.light_classifier.signal_status == 0):
+               text = "Red"
+           elif(self.light_classifier.signal_status == 1):
+               text = "Yellow"
+           elif(self.light_classifier.signal_status == 2):
+               text = "Green"
+           else:
+               text = "Unknown"
+           cv2.putText(cv_image,text,(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),2,cv2.LINE_AA)
+        
         try:
             self.detected_light_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
         except CvBridgeError as e:
             print(e)
-
-        light_state = self.light_classifier.get_classification(img_np)
+        #self.image_count = self.image_count +1
+        #filename = 'Sim_Image_' + str(self.image_count) + '.jpg'
+        #cv2.imwrite(filename, cv_image)
+        #print("saved image in:", filename)
+        
+        #img_full = cv2.imread(filename)
+       
+        end = time.time()
+        #print('Localization time: ', end-start)
+        #start = time.time()
+        # If there is no detection or low-confidence detection
+       
+        #end = time.time()
+        #print('Classification time: ', end-start)
+        
+        #self.image_count = self.image_count +1
+        #filename = 'Sim_Image_' + str(self.image_count) + '.jpg'
+        #cv2.imwrite(filename, cv_image)
+        #print("saved image in:", filename)
+        #img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
+        #img_full_np_copy = np.copy(img_full_np)
+    	#box = self.light_classifier.get_localization(img_full_np)
+        #img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
+        
+        light_state = self.light_classifier.signal_status
         rospy.loginfo("The upcoming light is %s", light_state)
         """for tl in self.lights:
 	    if (tl.pose.pose.position == light.pose.pose.position): # means we found the traffic light
 	        light_state = tl.state
     	        break #no need to parse other lights once light was found
         """
+        if(light_state is None):
+            light_state = 4
         return light_state
 
     def process_traffic_lights(self):

@@ -44,6 +44,7 @@ class TLClassifier(object):
         os.chdir(cwd)
         #keras classification model
         self.cls_model = load_model('tl_model_1.h5')
+        self.graph = tf.get_default_graph()
         
         #tensorflow localization/detection model
         detect_model_name = 'ssd_inception_v2_coco_11_06_2017'
@@ -71,11 +72,15 @@ class TLClassifier(object):
             self.scores =self.detection_graph.get_tensor_by_name('detection_scores:0')
             self.classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
             self.num_detections =self.detection_graph.get_tensor_by_name('num_detections:0')
+    
     # Helper function to convert image into numpy array    
     def load_image_into_numpy_array(self, image):
-         (im_width, im_height) = image.size
-         return np.array(image.getdata()).reshape(
-            (im_height, im_width, 3)).astype(np.uint8)       
+         #(im_width, im_height, im_depth)= image.shape
+         #print(image.shape)
+         return np.asarray(image, dtype="uint8" ) 
+         #np.array(image.getdata()).reshape(
+         #   (im_height, im_width, 3)).astype(np.uint8)       
+    
     # Helper function to convert normalized box coordinates to pixels
     def box_normal_to_pixel(self, box, dim):
     
@@ -124,11 +129,11 @@ class TLClassifier(object):
               # If there is no detection
               if idx == None:
                   box=[0, 0, 0, 0]
-                  print('no detection!')
+                  #print('no detection!')
               # If the confidence of detection is too slow    
               elif scores[idx]<=0.1:
                   box=[0, 0, 0, 0]
-                  print('low confidence')
+                  #print('low confidence')
               #If there is a detection and its confidence is high enough    
               else:
                   dim = image.shape[0:2]
@@ -139,15 +144,16 @@ class TLClassifier(object):
              
         return box
         
-    """def get_classification(self, image):
-        Determines the color of the traffic light in the image
+    def get_classification(self, image):
+        """Determines the color of the traffic light in the image
 
         Args:
             image (cv::Mat): cropped image containing the traffic light
 
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
-                
+        
+        """        
         # Resize cropped
          
         #img_resize = cv2.resize(image, (32, 32)) 
@@ -159,11 +165,12 @@ class TLClassifier(object):
         # Normalization
         img_resize/=255.
         # Prediction
-        predict = self.cls_model.predict(img_resize)
-        # Get color classification
-        tl_color = self.signal_classes[np.argmax(predict)]
-        # TrafficLight message
-        self.signal_status = tl_color
+        with self.graph.as_default():
+            predict = self.cls_model.predict(img_resize)
+            # Get color classification
+            tl_color = self.signal_classes[np.argmax(predict)]
+            # TrafficLight message
+            self.signal_status = tl_color
         # uncomment the following in real test
         if tl_color == 'Red':
             self.signal_status = TrafficLight.RED
@@ -173,14 +180,15 @@ class TLClassifier(object):
             self.signal_status = TrafficLight.YELLOW
         
         return self.signal_status
+    
     """
     def get_classification(self, image):
-        """Determines the color of the traffic light in the image
+        Determines the color of the traffic light in the image
         Args:
             image (cv::Mat): image containing the traffic light
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
-        """
+        
         color = TrafficLight.UNKNOWN
 
         # Convert to hsv space
@@ -202,7 +210,8 @@ class TLClassifier(object):
             color = TrafficLight.RED
 
         return color
-
+    """
+    
 if __name__ == '__main__':
         tl_cls =TLClassifier()
         os.chdir(cwd)
