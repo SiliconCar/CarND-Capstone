@@ -34,6 +34,10 @@ class Controller(object):
             return 0.0, 0.0, 0.0
 
         dt = time.time() - self.last_t
+
+        if target_v.x < ONE_MPH:
+            target_v.x = 0
+
         error_v = min(target_v.x, MAX_SPEED*ONE_MPH) - current_v.x
         throttle = self.throttle_pid.step(error_v, dt)
         throttle = max(0.0, min(1.0, throttle))

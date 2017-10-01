@@ -217,7 +217,7 @@ class WaypointUpdater(object):
             # There's a red light and we're at a waypoint before the red light waypoint
             else: # Within 100 waypoints -> slow down:
                 # Determine the velocity for this waypoint and set it
-                if wp_to_go < 1:
+                if wp_to_go < 5:
                     target_vel = 0.0
                 else:
                     target_vel = MAX_SPEED_METERS_PER_SEC - (SLOWDOWN_WPS - wp_to_go)*slope

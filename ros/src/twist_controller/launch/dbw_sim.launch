@@ -14,7 +14,7 @@
         <param name="throttle_Kp" value="1.0" />
         <param name="throttle_Ki" value="0.00001" />
         <param name="throttle_Kd" value="0.0" />
-        <param name="steering_Kp" value="2.5" />
+        <param name="steering_Kp" value="5.0" />
         <param name="steering_Ki" value="0.0" />
         <param name="steering_Kd" value="0.01" />
     </node>
