@@ -13,7 +13,7 @@ import cv2
 import yaml
 import math
 import time
-
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -52,6 +52,7 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        self.image_count = 0 #for saving images
         print("TL Detection...initiationalization complete")
 
         rospy.spin()
@@ -294,10 +295,38 @@ class TLDetector(object):
 
         #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
         light_state = TrafficLight.UNKNOWN
-
-    	box = self.light_classifier.get_localization(cv_image)
-        img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
-        light_state = self.light_classifier.get_classification(img_np)
+        
+        #self.image_count = self.image_count +1
+        #filename = 'Sim_Image_' + str(self.image_count) + '.jpg'
+        #cv2.imwrite(filename, cv_image)
+        #print("saved image in:", filename)
+        
+        #img_full = cv2.imread(filename)
+        img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
+        #start = time.time()
+        b = self.light_classifier.get_localization(img_full_np)
+        #end = time.time()
+        #print('Localization time: ', end-start)
+        #start = time.time()
+        # If there is no detection or low-confidence detection
+        if np.array_equal(b, np.zeros(4)):
+           print ('unknown')
+        else:    
+           img_np = cv2.resize(cv_image[b[0]:b[2], b[1]:b[3]], (32, 32)) 
+           self.light_classifier.get_classification(img_np)
+           print(self.light_classifier.signal_status)
+        #end = time.time()
+        #print('Classification time: ', end-start)
+        
+        #self.image_count = self.image_count +1
+        #filename = 'Sim_Image_' + str(self.image_count) + '.jpg'
+        #cv2.imwrite(filename, cv_image)
+        #print("saved image in:", filename)
+        #img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
+        #img_full_np_copy = np.copy(img_full_np)
+    	#box = self.light_classifier.get_localization(img_full_np)
+        #img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
+        light_state = self.light_classifier.signal_status
         rospy.loginfo("The upcoming light is %s", light_state)
         """for tl in self.lights:
 	    if (tl.pose.pose.position == light.pose.pose.position): # means we found the traffic light
