@@ -158,7 +158,7 @@ class TLClassifier(object):
          
         #img_resize = cv2.resize(image, (32, 32)) 
         # Color map conversion
-        cv2.imwrite('JFKyleTest.jpg', image)
+        #cv2.imwrite('JFKyleTest.jpg', image)
         img_resize=cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
         # Convert to four-dimension input as required by Keras
         img_resize = np.expand_dims(img_resize, axis=0).astype('float32')
@@ -220,6 +220,7 @@ if __name__ == '__main__':
             img_full = Image.open(image_path)
             img_full_np = tl_cls.load_image_into_numpy_array(img_full)
             img_full_np_copy = np.copy(img_full_np)
+            print('Processing following file:',image_path)
             start = time.time()
             b = tl_cls.get_localization(img_full_np)
             end = time.time()
