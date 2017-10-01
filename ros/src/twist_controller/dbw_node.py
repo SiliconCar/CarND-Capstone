@@ -93,6 +93,7 @@ class DBWNode(object):
             throttle, brake, steering = self.controller.control(self.twist_cmd.twist.linear,
                 self.twist_cmd.twist.angular,
                 self.current_velocity.twist.linear,
+                self.current_velocity.twist.angular,
                 self.dbw_enabled)
 
             if self.dbw_enabled:
@@ -112,7 +113,8 @@ class DBWNode(object):
         else:
             bcmd = BrakeCmd()
             bcmd.enable = True
-            bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
+            # bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
+            bcmd.pedal_cmd_type = BrakeCmd.CMD_PERCENT
             bcmd.pedal_cmd = brake
             self.brake_pub.publish(bcmd)
 

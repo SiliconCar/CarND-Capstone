@@ -36,7 +36,7 @@ For every message on the 'current_pose' topic:
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-MAX_SPEED_METERS_PER_SEC = 20*0.447
+MAX_SPEED_METERS_PER_SEC = 10*0.447
 SLOWDOWN_WPS = 100 # Number of waypoints before traffic light to start slowing down
 
 
