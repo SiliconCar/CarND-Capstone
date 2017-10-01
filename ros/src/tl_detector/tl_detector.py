@@ -80,7 +80,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
+        #rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -102,7 +102,7 @@ class TLDetector(object):
 
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("TL_Detector: The next traffic light state is %s with stop line at wp: %s", state, light_wp)
+        #rospy.loginfo("TL_Detector: The next traffic light state is %s with stop line at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -316,7 +316,7 @@ class TLDetector(object):
            self.light_classifier.get_classification(img_np)
            light_state = self.light_classifier.signal_status
 
-        rospy.loginfo("The upcoming light is detected as %s", light_state)
+        rospy.loginfo("Upcoming light %s, True state: %s", light_state, light_state_via_msg)
 
         #compare detected state against ground truth
         #self.count = self.count + 1
@@ -330,8 +330,8 @@ class TLDetector(object):
         #self.total_classification = self.total_classification + 1
         #accuracy = (self.tp_classification / self.total_classification) * 100
         #rospy.loginfo("Classification accuracy: %s", accuracy)
-        return light_state_via_msg
-        #return light_state
+        #return light_state_via_msg
+        return light_state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -350,7 +350,7 @@ class TLDetector(object):
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
-            rospy.loginfo("Car position (at Wp Index): %s", car_position)
+            #rospy.loginfo("Car position (at Wp Index): %s", car_position)
 
         for light_stop_position in stop_line_positions:
             light_stop_pose = Pose()

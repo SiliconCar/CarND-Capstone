@@ -95,7 +95,7 @@ class WaypointUpdater(object):
     that represents the position of the closest waypoint to the traffic light
     '''
     def traffic_cb(self, light_idx):
-        rospy.loginfo("WPUpdater: Closest red traffic light at idx: %d", light_idx.data)
+        #rospy.loginfo("WPUpdater: Closest red traffic light at idx: %d", light_idx.data)
         self.red_light_wp = light_idx.data
         #self.send_next_waypoints()
 
@@ -218,7 +218,7 @@ class WaypointUpdater(object):
                   should be set to max speed
             '''
             wp_to_go = self.red_light_wp - min_loc - i - 10 # Add buffer
-            out_vel = []
+            #out_vel = []
             if not is_red_light_ahead or wp_to_go < -15:
                 self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
 
@@ -234,11 +234,11 @@ class WaypointUpdater(object):
                 if target_vel < 0.1:
                     target_vel = 0
                 # new_velocity = max(0, target_vel)
-                out_vel.append(target_vel)
+                #out_vel.append(target_vel)
                 self.set_waypoint_velocity(next_wps, i, target_vel)
 
-        if out_vel:
-            rospy.loginfo(','.join(str(_) for _ in out_vel))
+        #if out_vel:
+        #    rospy.loginfo(','.join(str(_) for _ in out_vel))
         #self.red_light_wp = -1
         # rospy.loginfo("WPUpdater: Publishing next waypoints to final_waypoints")
         lane = Lane()
