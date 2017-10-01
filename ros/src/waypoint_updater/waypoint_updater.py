@@ -201,7 +201,7 @@ class WaypointUpdater(object):
         # If this error is thrown, need to rework solution. This means that the traffic light waypoint
         # is behind the car. Hopefully this doesn't happen
         if is_red_light_ahead and self.red_light_wp <= min_loc:
-            rospy.loginfo("WPUpdater: Red light idx is behind closest waypoint idx. Need to rework our solution")
+            #rospy.loginfo("WPUpdater: Red light idx is behind closest waypoint idx. Need to rework our solution")
             return
 
         # slowdown_rate = (current_velocity/max(1, wp_delta))*0.9
