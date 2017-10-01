@@ -43,7 +43,7 @@ class TLClassifier(object):
         
         os.chdir(cwd)
         #keras classification model
-        self.cls_model = load_model('tl_model_1.h5')
+        self.cls_model = load_model('tl_model_3.h5')
         self.graph = tf.get_default_graph()
         
         #tensorflow localization/detection model
@@ -131,7 +131,7 @@ class TLClassifier(object):
                   box=[0, 0, 0, 0]
                   #print('no detection!')
               # If the confidence of detection is too slow    
-              elif scores[idx]<=0.1:
+              elif scores[idx]<=0.08:
                   box=[0, 0, 0, 0]
                   #print('low confidence')
               #If there is a detection and its confidence is high enough    

@@ -252,10 +252,10 @@ class TLDetector(object):
 	    # DELETE THIS MAYBE - MANUAL TWEAKS TO GET THE PROJECTION TO COME OUT CORRECTLY IN SIMULATOR
 	    # just override the simulator parameters. probably need a more reliable way to determine if 
 	    # using simulator and not real car
-	    if fx < 10:
-                 fx = 2574
-	         fy = 2744
-	         point_to_cam[2] -= 1.0  
+	    #if fx < 10:
+        #         fx = 2574
+	    #     fy = 2744
+	    #     point_to_cam[2] -= 1.0  
 	    ##########################################################################################
 
 	    #rospy.loginfo_throttle(3, "camera to traffic light: " + str(point_to_cam))
@@ -303,11 +303,19 @@ class TLDetector(object):
         #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
         start = time.time()
         light_state = TrafficLight.UNKNOWN
+        cv_image = cv2.resize(cv_image,(0,0),fx=0.5,fy=0.5) 
+        print(cv_image.shape)
+        cv_image = cv_image[100:450,:]
         img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
         
         box = self.light_classifier.get_localization(img_full_np)
         #publish image with drawn bboxes to new topic
-        
+        box_height = box[2] - box[0]
+        box_width = box[3] - box[1]
+        ratio_check = False
+        if(box_width > 0):
+            aspect_ratio = float(box_height) / float(box_width)
+            ratio_check = (aspect_ratio) >= 1.5
         #bbox_img_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
         #self.detected_light_pub.publish(bbox_img_msg)
 
@@ -388,9 +396,6 @@ class TLDetector(object):
         light = None
         closest_light_wp = None
         dist_to_light = 10000   #initialize to high value
-
-        
-        
 
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
