@@ -196,7 +196,7 @@ class WaypointUpdater(object):
         current_velocity = self.get_waypoint_velocity(closest_wp)
         wp_delta = self.red_light_wp - min_loc
         is_red_light_ahead = (self.red_light_wp != -1
-                              and wp_delta < 100)
+                              and wp_delta < SLOWDOWN_WPS)
                               #and self.upcoming_light_state == TrafficLight.RED)
         # If this error is thrown, need to rework solution. This means that the traffic light waypoint
         # is behind the car. Hopefully this doesn't happen
@@ -216,19 +216,25 @@ class WaypointUpdater(object):
                   before the traffic light. The remaining points (after the light)
                   should be set to max speed
             '''
-            if not is_red_light_ahead or i > self.red_light_wp:
+            wp_to_go = self.red_light_wp - min_loc - i - 10 # Add buffer
+            out_vel = []
+            if not is_red_light_ahead or wp_to_go < -15:
                 self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
             # There's a red light and we're at a waypoint before the red light waypoint
             else: # Within 100 waypoints -> slow down:
                 # Determine the velocity for this waypoint and set it
-                wp_to_go = self.red_light_wp - min_loc - i
-                if wp_to_go < 5:
+                if wp_to_go < 1:
                     target_vel = 0.0
                 else:
                     target_vel = MAX_SPEED_METERS_PER_SEC - (SLOWDOWN_WPS - wp_to_go)*slope
-                new_velocity = max(0, target_vel)
-                self.set_waypoint_velocity(next_wps, i, new_velocity)
+                if target_vel < 0.1:
+                    target_vel = 0
+                # new_velocity = max(0, target_vel)
+                out_vel.append(target_vel)
+                self.set_waypoint_velocity(next_wps, i, target_vel)
 
+        if out_vel:
+            rospy.loginfo(','.join(str(_) for _ in out_vel))
         #self.red_light_wp = -1
         # rospy.loginfo("WPUpdater: Publishing next waypoints to final_waypoints")
         lane = Lane()
