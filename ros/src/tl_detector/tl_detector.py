@@ -36,7 +36,7 @@ class TLDetector(object):
         rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb_extended)
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb) # _extended
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -75,7 +75,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
+        # rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -88,7 +88,7 @@ class TLDetector(object):
             self.state = state
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-            light_wp = light_wp if state == TrafficLight.RED else -1
+            light_wp = light_wp if (state == TrafficLight.RED or state == TrafficLight.YELLOW) else -1
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
@@ -107,7 +107,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        rospy.loginfo("The next traffic light state is %s with stop line at wp: %s", state, light_wp)
+        # rospy.loginfo("The next traffic light state is %s with stop line at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -149,6 +149,8 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
+        if self.waypoints is None:
+            return
         #TODO implement
         min_dist = 10000
         min_loc = None
@@ -229,8 +231,8 @@ class TLDetector(object):
         #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
         light_state = None
 
-	for tl in self.lights:
-	    dist = math.sqrt((tl.pose.pose.position.x - light.position.x)**2 + (tl.pose.pose.position.y - light.position.y)**2)
+    	for tl in self.lights:
+    	    dist = math.sqrt((tl.pose.pose.position.x - light.position.x)**2 + (tl.pose.pose.position.y - light.position.y)**2)
             if (dist < 50): #means we found the light close to the stop line
                 light_state = tl.state
 	        break #no need to parse other lights once light was found
@@ -249,17 +251,15 @@ class TLDetector(object):
         """
         light = None
         closest_light_stop_wp = None
-#         Modifed on merge -- Thomas
-#         # we receive the light positions and need to find the closest to car_position
-#
-#         light_stop_positions = self.config['light_positions']
-# =======
-#
+
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-stop_line_positions        if(self.pose):
+        if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
-            rospy.loginfo("Car position (at Wp index): %s", car_position)
+            # rospy.loginfo("Car position (at Wp index): %s", car_position)
+        else:
+            return -1, TrafficLight.UNKNOWN
+
         #TODO find the closest visible traffic light (if one exists)
         # we also want to make sure the traffic light is ahead of us (not behind)
         # we may need to add a threshold to ensure that we're not too far away in terms of waypoints
@@ -268,10 +268,10 @@ stop_line_positions        if(self.pose):
         #car position is the indice of the waypoint closest to the car.
         #light_positions include all the traffic light positions. We parse them one at a time.
         for light_stop_position in stop_line_positions:
-	    light_stop_pose = Pose()
-	    light_stop_pose.position.x = light_stop_position[0]
-	    light_stop_pose.position.y = light_stop_position[1]
-	    light_stop_wp = self.get_closest_waypoint(light_stop_pose)     #get the wp closest to each light_position
+    	    light_stop_pose = Pose()
+    	    light_stop_pose.position.x = light_stop_position[0]
+    	    light_stop_pose.position.y = light_stop_position[1]
+    	    light_stop_wp = self.get_closest_waypoint(light_stop_pose)     #get the wp closest to each light_position
             if light_stop_wp >= car_position :    #it found a waypoint close to the traffic light and ahead of the car
                 if closest_light_stop_wp is None:    #check if this is the first light we process
                     closest_light_stop_wp = light_stop_wp
