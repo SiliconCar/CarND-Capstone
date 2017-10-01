@@ -26,7 +26,7 @@ class Controller(object):
     target_w - desired angular velocity
     current_v - current linear velocity
     dbw_enabled - drive by wire enabled (ignore error in this case)
-	'''
+    '''
     def control(self, target_v, target_w, current_v, dbw_enabled):
         # Get throttle value from controller
         if self.last_t is None or not dbw_enabled:
@@ -38,8 +38,8 @@ class Controller(object):
         throttle = self.throttle_pid.step(error_v, dt)
         throttle = max(0.0, min(1.0, throttle))
         if error_v < 0:
-            brake = -15.0*error_v   # Proportional braking
-            # brake = max(brake, 1.0)
+            brake = -12.0*error_v   # Proportional braking
+            brake = max(brake, 1.0)
             throttle = 0.0
         else:
             brake = 0.0

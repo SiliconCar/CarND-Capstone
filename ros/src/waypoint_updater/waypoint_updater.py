@@ -72,7 +72,7 @@ class WaypointUpdater(object):
         self.red_light_wp = -1
         self.last_wp_id = None
         self.next_light_state = None
-	self.next_light_wp = None
+        self.next_light_wp = None
         rospy.spin()
 
     # Callback for the position updater topic
@@ -88,7 +88,6 @@ class WaypointUpdater(object):
         rospy.loginfo('WPUpdater: Got initial waypoints')
         if self.waypoints is None:
             self.waypoints = lane.waypoints
-            self.send_next_waypoints()
 
     '''
     Callback for the traffic light topic. This message contains a single integer
@@ -101,12 +100,12 @@ class WaypointUpdater(object):
 
     def traffic_state_cb(self, tl_status):
         #rospy.loginfo("WPUpdater: Upcoming light state: %d and wy: %d", tl_status.state, tl_status.waypoint)
-	self.next_light_wp = tl_status.waypoint
+        self.next_light_wp = tl_status.waypoint
         self.next_light_state = tl_status.state
-	if tl_status.state == TrafficLight.RED or tl_status.state == TrafficLight.YELLOW:
-	    self.red_light_wp = tl_status.waypoint
-	else:
-	    self.red_light_wp = -1
+        if tl_status.state == TrafficLight.RED or tl_status.state == TrafficLight.YELLOW:
+            self.red_light_wp = tl_status.waypoint
+        else:
+            self.red_light_wp = -1
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -207,6 +206,7 @@ class WaypointUpdater(object):
         # slowdown_rate = (current_velocity/max(1, wp_delta))*0.9
         # rospy.loginfo('slowdown rate %f',slowdown_rate)
         slope = (MAX_SPEED_METERS_PER_SEC/SLOWDOWN_WPS)
+        out_vel = []
         # Iterate through all the next waypoints and adjust their speed
         for i in range(len(next_wps) - 1):
             '''
@@ -223,7 +223,7 @@ class WaypointUpdater(object):
             # There's a red light and we're at a waypoint before the red light waypoint
             else: # Within 100 waypoints -> slow down:
                 # Determine the velocity for this waypoint and set it
-                if wp_to_go < 1:
+                if wp_to_go < 5:
                     target_vel = 0.0
                 else:
                     target_vel = MAX_SPEED_METERS_PER_SEC - (SLOWDOWN_WPS - wp_to_go)*slope
