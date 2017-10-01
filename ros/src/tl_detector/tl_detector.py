@@ -45,6 +45,8 @@ class TLDetector(object):
 	    #we don't use this publisher anymore. We publish the status of all traffic lights. Not just the red ones.
         #self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
         self.upcoming_traffic_light_pub = rospy.Publisher('/all_traffic_waypoint', TLStatus, queue_size=1)
+        self.detected_light_pub = rospy.Publisher('/detections', Image, queue_size=1) 
+
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
         self.listener = tf.TransformListener()
@@ -108,7 +110,9 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-        #rospy.loginfo("The next traffic light state is %s with stop line at wp: %s", state, light_wp)
+        
+        if(state is not 4):
+            rospy.loginfo("The next traffic light state is %s with stop line at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -276,10 +280,11 @@ class TLDetector(object):
         if(not self.has_image):
             self.prev_light_loc = None
             return False
+        
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
-        x, y = self.project_to_image_plane(light)
+        #x, y = self.project_to_image_plane(light)
 	#print ("Traffic Light @:", x,y)
 	#only keep this code for debugging purpose
 	#draw a small circle on the image, save the image and the point coordinates
@@ -296,7 +301,25 @@ class TLDetector(object):
         light_state = TrafficLight.UNKNOWN
 
     	box = self.light_classifier.get_localization(cv_image)
+        print(box)
+
+        if sum(box) == 0:
+            return light_state
         img_np = cv2.resize(cv_image[box[0]:box[2], box[1]:box[3]], (32, 32))
+
+        #publish image with drawn bboxes to new topic
+        cv2.rectangle(cv_image,(box[1],box[0]),(box[3],box[2]),(255,0,0),thickness=2)
+        #bbox_img_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
+        #self.detected_light_pub.publish(bbox_img_msg)
+
+        #cv2.imshow("Image window", cv_image)
+        #cv2.waitKey(1)
+
+        try:
+            self.detected_light_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+        except CvBridgeError as e:
+            print(e)
+
         light_state = self.light_classifier.get_classification(img_np)
         rospy.loginfo("The upcoming light is %s", light_state)
         """for tl in self.lights:
@@ -319,21 +342,26 @@ class TLDetector(object):
         closest_light_wp = None
         dist_to_light = 10000   #initialize to high value
 
+        
+        
+
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
+            #print("car waypoint: ", car_position)
+            #print("num lights: ", len(self.lights))
             #rospy.loginfo("Car position (at Wp Index): %s", car_position)
             for light_pose in self.lights:
                 light_wp = self.get_closest_waypoint(light_pose.pose.pose)
-                if light_wp >= car_position:
-		            if closest_light_wp is None:
-		                closest_light_wp = light_wp
-		                light = light_pose
-		            elif light_wp < closest_light_wp:
-		                closest_light_wp = light_wp
-		                light = light_pose
+                #print("light wp: ", light_wp)
+                #if light_wp >= car_position:
+                if closest_light_wp is None:
+                    closest_light_wp = light_wp
+                    light = light_pose
+                elif light_wp < closest_light_wp:
+                    closest_light_wp = light_wp
+                    light = light_pose
             if (car_position and closest_light_wp):
                 dist_to_light = abs(car_position - closest_light_wp)
-
         if light and dist_to_light < 200:       #we check the status of the traffic light if it's within 200 waypoints distance
             state = self.get_light_state(light)
             closest_stop_line_wp = self.find_stop_line(closest_light_wp)
