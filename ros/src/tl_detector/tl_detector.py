@@ -38,7 +38,7 @@ class TLDetector(object):
         rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1) # extended
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1, buff_size=2*52428800) # extended
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -78,9 +78,18 @@ class TLDetector(object):
 
         """
         self.has_image = True
-        self.camera_image = msg
-        light_wp, state = self.process_traffic_lights()
-        #rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
+
+        # rospy.loginfo('Image seq %s', msg.header.seq)
+        img_time = msg.header.stamp
+        age = rospy.Time.now() - img_time
+        if age.secs > 0.2:
+            rospy.loginfo('Image too old. Age %s', age.secs)
+            light_wp, state = -1, TrafficLight.UNKNOWN
+        else:
+            self.camera_image = msg
+            light_wp, state = self.process_traffic_lights()
+
+        # rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
 
         '''
         Publish upcoming red lights at camera frequency.

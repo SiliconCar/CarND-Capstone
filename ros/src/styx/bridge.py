@@ -31,7 +31,7 @@ TYPE = {
     'steer_cmd': SteeringCmd,
     'brake_cmd': BrakeCmd,
     'throttle_cmd': ThrottleCmd,
-    'image':Image
+    'image':Image,
 }
 
 
@@ -55,6 +55,9 @@ class Bridge(object):
 
         self.publishers = {e.name: rospy.Publisher(e.topic, TYPE[e.type], queue_size=1)
                            for e in conf.publishers}
+
+        # Custom publisher with large buffer
+        # self.publishers['image'] = rospy.Publisher('/image_color', TYPE['image'], queue_size=1)#, tcp_nodelay=True)
 
     def create_light(self, x, y, z, yaw, state):
         light = TrafficLight()
@@ -178,6 +181,7 @@ class Bridge(object):
         image_array = np.asarray(image)
 
         image_message = self.bridge.cv2_to_imgmsg(image_array, encoding="rgb8")
+        image_message.header.stamp = rospy.Time.now() #h = std_msgs.msg.Header()
         self.publishers['image'].publish(image_message)
 
     def callback_steering(self, data):

@@ -53,7 +53,7 @@ class WaypointUpdater(object):
         """
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb, queue_size=1, buff_size=512*1024)
         #rospy.Subscriber('/all_traffic_waypoint',TLStatus,self.traffic_state_cb)
 
         '''
