@@ -16,6 +16,7 @@ import time
 import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
+SIM_TESTING = True
 
 
 class TLDetector(object):
@@ -294,7 +295,16 @@ class TLDetector(object):
 
 
         #TODO use light location to zoom in on traffic light in image
+        #Prepare image for classification
+        if SIM_TESTING: #we cut 100 pixels on the left and right of the image
+            width, height, _ = cv_image.shape
+            processed_img = cv_image[50:width-50, 0:height-100]
+        else:
+            processed_img = cv_image.copy()
 
+        #Convert image to RGB format
+        processed_img = cv2.cvtColor(processed_img, cv2.COLOR_BGR2RGB)
+        
         #Get classification
 
         #initialize light_state to unknown by default
@@ -308,22 +318,18 @@ class TLDetector(object):
                 light_state_via_msg = tl.state
                 break #no need to parse other lights once light was found
 
-        # for tl in self.lights:
-        #     if (tl.pose.pose.position == light.position): # means we found the traffic light
-        #         light_state_via_msg = tl.state
-        #         break #no need to parse other lights once light was found
-
         #detect traffic light position (box) in image
         #convert image to np array
-        img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
+        img_full_np = self.light_classifier.load_image_into_numpy_array(processed_img)
         b = self.light_classifier.get_localization(img_full_np)
+        print(b)
         # If there is no detection or low-confidence detection
         unknown = False
         if np.array_equal(b, np.zeros(4)):
            print ('unknown')
            unknown = True
         else:    #we can use the classifier to classify the state of the traffic light
-           img_np = cv2.resize(cv_image[b[0]:b[2], b[1]:b[3]], (32, 32))
+           img_np = cv2.resize(processed_img[b[0]:b[2], b[1]:b[3]], (32, 32))
            self.light_classifier.get_classification(img_np)
            light_state = self.light_classifier.signal_status
 
@@ -378,15 +384,6 @@ class TLDetector(object):
                     closest_light_stop_wp = light_stop_wp    #if we have a closer light_wp ahead of the car position, we allocate closer value
                     light = light_stop_pose
 
-        # for light_pose in self.lights:
-        #     light_wp = self.get_closest_waypoint(light_pose.pose.pose)
-        #     if light_wp >= car_position:
-        #         if closest_light_wp is None:
-        #             closest_light_wp = light_wp
-        #             light = light_pose
-        #         elif light_wp < closest_light_wp:
-        #             closest_light_wp = light_wp
-        #             light = light_pose
         if (car_position and closest_light_stop_wp):
             dist_to_light = abs(car_position - closest_light_stop_wp)
             #rospy.loginfo("Closest light position (in Wp index): %s", closest_light_stop_wp)
