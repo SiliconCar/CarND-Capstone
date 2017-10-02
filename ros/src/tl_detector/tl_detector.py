@@ -91,26 +91,26 @@ class TLDetector(object):
 
         # rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
 
-        '''
-        Publish upcoming red lights at camera frequency.
-        Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
-        of times till we start using it. Otherwise the previous stable state is
-        used.
-        '''
-        if self.state != state:
-            self.state_count = 0
-            self.state = state
-        elif self.state_count >= STATE_COUNT_THRESHOLD:
-            self.last_state = self.state
-            light_wp = light_wp if (state == TrafficLight.RED or state == TrafficLight.YELLOW) else -1
-            self.last_wp = light_wp
-            self.upcoming_red_light_pub.publish(Int32(light_wp))
-        else:
-            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-        self.state_count += 1
+        # '''
+        # Publish upcoming red lights at camera frequency.
+        # Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
+        # of times till we start using it. Otherwise the previous stable state is
+        # used.
+        # '''
+        # if self.state != state:
+        #     self.state_count = 0
+        #     self.state = state
+        # elif self.state_count >= STATE_COUNT_THRESHOLD:
+        #     self.last_state = self.state
+        #     light_wp = light_wp if (state == TrafficLight.RED or state == TrafficLight.YELLOW) else -1
+        #     self.last_wp = light_wp
+        #     self.upcoming_red_light_pub.publish(Int32(light_wp))
+        # else:
+        #     self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+        # self.state_count += 1
 
-        self.camera_image = msg
-        light_wp, state = self.process_traffic_lights()
+        #self.camera_image = msg
+        #light_wp, state = self.process_traffic_lights()
         #rospy.loginfo("TL_Detector: The next traffic light state is %s with stop line at wp: %s", state, light_wp)
 
         '''
@@ -131,7 +131,7 @@ class TLDetector(object):
             tl_status_msg.header.stamp = rospy.Time(0)
             tl_status_msg.waypoint = light_wp
             tl_status_msg.state = state
-            #rospy.loginfo("Light Wp is %s and state is %s", light_wp, self.state)
+            # rospy.loginfo("Light Wp is %s and state is %s", light_wp, self.state)
             self.upcoming_traffic_light_pub.publish(tl_status_msg)
         else:
             # we keep publishing the last state and wp until it gets confirmed.
@@ -318,8 +318,10 @@ class TLDetector(object):
         img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
         b = self.light_classifier.get_localization(img_full_np)
         # If there is no detection or low-confidence detection
+        unknown = False
         if np.array_equal(b, np.zeros(4)):
            print ('unknown')
+           unknown = True
         else:    #we can use the classifier to classify the state of the traffic light
            img_np = cv2.resize(cv_image[b[0]:b[2], b[1]:b[3]], (32, 32))
            self.light_classifier.get_classification(img_np)
@@ -328,17 +330,19 @@ class TLDetector(object):
         rospy.loginfo("Upcoming light %s, True state: %s", light_state, light_state_via_msg)
 
         #compare detected state against ground truth
-        #self.count = self.count + 1
-        #filename = "sim_image_" + str(self.count)
-        #if (light_state == light_state_via_msg):
-        #    self.tp_classification = self.tp_classification + 1
-        #    filename = filename + "_good_" + str(light_state) + ".jpg"
-        #else:
-        #    filename = filename + "_bad_" + str(light_state) + ".jpg"
-        #cv2.imwrite(filename, cv_image)
-        #self.total_classification = self.total_classification + 1
-        #accuracy = (self.tp_classification / self.total_classification) * 100
-        #rospy.loginfo("Classification accuracy: %s", accuracy)
+        if not unknown:
+            self.count = self.count + 1
+            filename = "sim_image_" + str(self.count)
+            if (light_state == light_state_via_msg):
+               self.tp_classification = self.tp_classification + 1
+               #filename = filename + "_good_" + str(light_state) + ".jpg"
+            else:
+               filename = filename + "_bad_" + str(light_state) + ".jpg"
+               cv2.imwrite(filename, cv_image)
+            self.total_classification = self.total_classification + 1
+            accuracy = (self.tp_classification / self.total_classification) * 100
+            if self.count % 20 == 0:
+                rospy.loginfo("Classification accuracy: %s", accuracy)
         #return light_state_via_msg
         return light_state
 

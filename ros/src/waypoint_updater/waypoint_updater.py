@@ -51,10 +51,10 @@ class WaypointUpdater(object):
         to catch up
         - Sean
         """
-        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1)
+        rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb, queue_size=1, buff_size=512*1024)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb, queue_size=1, buff_size=512*1024)
-        #rospy.Subscriber('/all_traffic_waypoint',TLStatus,self.traffic_state_cb)
+        #rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb, queue_size=1, buff_size=512*1024)
+        rospy.Subscriber('/all_traffic_waypoint',TLStatus,self.traffic_state_cb)
 
         '''
         TODO: Add a subscriber for /obstacle_waypoint
@@ -97,16 +97,17 @@ class WaypointUpdater(object):
     def traffic_cb(self, light_idx):
         #rospy.loginfo("WPUpdater: Closest red traffic light at idx: %d", light_idx.data)
         self.red_light_wp = light_idx.data
-        #self.send_next_waypoints()
+        self.send_next_waypoints()
 
     def traffic_state_cb(self, tl_status):
-        #rospy.loginfo("WPUpdater: Upcoming light state: %d and wy: %d", tl_status.state, tl_status.waypoint)
+        # rospy.loginfo("WPUpdater: Upcoming light state: %d and wy: %d", tl_status.state, tl_status.waypoint)
         self.next_light_wp = tl_status.waypoint
         self.next_light_state = tl_status.state
         if tl_status.state == TrafficLight.RED or tl_status.state == TrafficLight.YELLOW:
             self.red_light_wp = tl_status.waypoint
         else:
             self.red_light_wp = -1
+        self.send_next_waypoints()
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -127,7 +128,7 @@ class WaypointUpdater(object):
         return dist
 
     def send_next_waypoints(self):
-        if self.waypoints is None or self.current_pose is None:
+        if self.waypoints is None or self.current_pose is None or self.next_light_wp is None:
             return
 
         carx = self.current_pose.position.x
@@ -194,9 +195,11 @@ class WaypointUpdater(object):
         - Doug
         '''
         current_velocity = self.get_waypoint_velocity(closest_wp)
-        wp_delta = self.red_light_wp - min_loc
+        wp_delta = self.next_light_wp - min_loc
+
+        is_light_ahead = wp_delta < SLOWDOWN_WPS
         is_red_light_ahead = (self.red_light_wp != -1
-                              and wp_delta < SLOWDOWN_WPS)
+                              and is_light_ahead)
                               #and self.upcoming_light_state == TrafficLight.RED)
         # If this error is thrown, need to rework solution. This means that the traffic light waypoint
         # is behind the car. Hopefully this doesn't happen
@@ -217,11 +220,13 @@ class WaypointUpdater(object):
                   before the traffic light. The remaining points (after the light)
                   should be set to max speed
             '''
-            wp_to_go = self.red_light_wp - min_loc - i - 10 # Add buffer
+            wp_to_go = self.next_light_wp - min_loc - i - 10 # Add buffer
             #out_vel = []
-            if not is_red_light_ahead or wp_to_go < -15:
-                self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
-
+            if not is_red_light_ahead:
+                if wp_to_go < 30 and wp_to_go > 0:
+                    self.set_waypoint_velocity(next_wps, i, 5*0.447)
+                else:
+                    self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
             # There's a red light and we're at a waypoint before the red light waypoint
             else: # Within 100 waypoints -> slow down:
                 # Determine the velocity for this waypoint and set it
