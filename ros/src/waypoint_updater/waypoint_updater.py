@@ -4,6 +4,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint, TrafficLight, TLStatus
 from std_msgs.msg import Int32
+from geometry_msgs.msg import TwistStamped
 
 import math, sys
 from itertools import islice, cycle
@@ -55,6 +56,8 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         #rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb, queue_size=1, buff_size=512*1024)
         rospy.Subscriber('/all_traffic_waypoint',TLStatus,self.traffic_state_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
+
 
         '''
         TODO: Add a subscriber for /obstacle_waypoint
@@ -69,11 +72,15 @@ class WaypointUpdater(object):
 
         self.waypoints = None
         self.current_pose = None
+        self.current_velocity = None
         self.red_light_wp = -1
         self.last_wp_id = None
         self.next_light_state = None
         self.next_light_wp = None
         rospy.spin()
+
+    def current_velocity_cb(self, msg):
+        self.current_velocity = msg
 
     # Callback for the position updater topic
     def pose_cb(self, msg):
@@ -128,9 +135,10 @@ class WaypointUpdater(object):
         return dist
 
     def send_next_waypoints(self):
-        if self.waypoints is None or self.current_pose is None or self.next_light_wp is None:
+        if self.waypoints is None or self.current_velocity is None \
+            or self.current_pose is None or self.next_light_wp is None:
             return
-
+        speed = self.current_velocity.twist.linear.x
         carx = self.current_pose.position.x
         cary = self.current_pose.position.y
 
@@ -223,7 +231,7 @@ class WaypointUpdater(object):
             wp_to_go = self.next_light_wp - min_loc - i - 10 # Add buffer
             #out_vel = []
             if not is_red_light_ahead:
-                if wp_to_go < 30 and wp_to_go > 0:
+                if speed > 3*0.447 and wp_to_go < 30 and wp_to_go > 0:
                     self.set_waypoint_velocity(next_wps, i, 5*0.447)
                 else:
                     self.set_waypoint_velocity(next_wps, i, MAX_SPEED_METERS_PER_SEC)
