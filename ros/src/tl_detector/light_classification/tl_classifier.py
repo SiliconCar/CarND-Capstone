@@ -47,7 +47,7 @@ class TLClassifier(object):
         self.graph = tf.get_default_graph()
         
         #tensorflow localization/detection model
-        detect_model_name = 'ssd_inception_v2_coco_11_06_2017'
+        detect_model_name = 'ssd_mobilenet_v1_coco_11_06_2017' #was 'ssd_inception_v2_coco_11_06_2017'
         PATH_TO_CKPT = detect_model_name + '/frozen_inference_graph.pb'
         # setup tensorflow graph
         self.detection_graph = tf.Graph()
@@ -124,22 +124,37 @@ class TLClassifier(object):
               scores = np.squeeze(scores)
     
               cls = classes.tolist()
+              #print(cls)
               # Find the first occurence of traffic light detection id=10
               idx = next((i for i, v in enumerate(cls) if v == 10.), None)
               # If there is no detection
               if idx == None:
                   box=[0, 0, 0, 0]
                   print('no detection!')
-              # If the confidence of detection is too slow    
-              elif scores[idx]<=0.1:
+              # If the confidence of detection is too slow, 0.3 for simulator    
+              elif scores[idx]<=0.3:
                   box=[0, 0, 0, 0]
-                  print('low confidence')
+                  print('low confidence:', scores[idx])
               #If there is a detection and its confidence is high enough    
               else:
+                  #*************corner cases***********************************
                   dim = image.shape[0:2]
                   box = self.box_normal_to_pixel(boxes[idx], dim)
-                  print(box)
-                  print('localization confidence: ', scores[idx])
+                  box_h = box[2] - box[0]
+                  box_w = box[3] - box[1]
+                  ratio = box_h/(box_w + 0.01)
+                  # if the box is too small, 20 pixels for simulator
+                  if (box_h <20) or (box_w<20):
+                      box =[0, 0, 0, 0]
+                      print('box too small!', box_h, box_w)
+                  # if the h-w ratio is not right, 1.5 for simulator    
+                  elif (ratio<1.5):
+                      box =[0, 0, 0, 0]
+                      print('wrong h-w ratio', ratio)
+                  else:    
+                       print(box)
+                       print('localization confidence: ', scores[idx])
+                 #****************end of corner cases***********************      
               self.tl_box = box
              
         return box
