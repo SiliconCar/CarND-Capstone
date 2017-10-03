@@ -253,7 +253,7 @@ class TLDetector(object):
             y = int(y + cy)
 
         return (x, y)
-        
+
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -272,7 +272,6 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         #x, y = self.project_to_image_plane(light)
         #print ("Traffic Light @:", x,y)
         #only keep this code for debugging purpose
@@ -289,7 +288,7 @@ class TLDetector(object):
             x_start = int(width * 0.10)
             x_end = int(width * 0.90)
             y_start = 0
-            y_end = int(width * 0.85) 
+            y_end = int(width * 0.85)
             processed_img = cv_image[x_start:x_end, y_start:y_end]
         else:
             x_projected, y_projected = self.project_to_image_plane(light)
@@ -299,7 +298,7 @@ class TLDetector(object):
 
         #Convert image to RGB format
         processed_img = cv2.cvtColor(processed_img, cv2.COLOR_BGR2RGB)
-        
+
         #Get classification
 
         #initialize light_state to unknown by default
