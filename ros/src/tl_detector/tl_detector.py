@@ -283,7 +283,7 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-
+        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         #x, y = self.project_to_image_plane(light)
         #print ("Traffic Light @:", x,y)
         #only keep this code for debugging purpose
@@ -338,7 +338,7 @@ class TLDetector(object):
                #filename = filename + "_good_" + str(light_state) + ".jpg"
             else:
                filename = filename + "_bad_" + str(light_state) + ".jpg"
-               cv2.imwrite(filename, cv_image)
+            #    cv2.imwrite(filename, cv_image)
             self.total_classification = self.total_classification + 1
             accuracy = (self.tp_classification / self.total_classification) * 100
             if self.count % 20 == 0:
@@ -364,6 +364,8 @@ class TLDetector(object):
         if(self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
             #rospy.loginfo("Car position (at Wp Index): %s", car_position)
+        else:
+            return -1, TrafficLight.UNKNOWN
 
         for light_stop_position in stop_line_positions:
             light_stop_pose = Pose()
@@ -391,7 +393,7 @@ class TLDetector(object):
             dist_to_light = abs(car_position - closest_light_stop_wp)
             #rospy.loginfo("Closest light position (in Wp index): %s", closest_light_stop_wp)
 
-        if light:# and dist_to_light < 200:       #we check the status of the traffic light if it's within 200 waypoints distance
+        if light and dist_to_light < 200:       #we check the status of the traffic light if it's within 200 waypoints distance
             state = self.get_light_state(light)
             #closest_stop_line_wp = self.find_stop_line(closest_light_wp)
             return closest_light_stop_wp, state
