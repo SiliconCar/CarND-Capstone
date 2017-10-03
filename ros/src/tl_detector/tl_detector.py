@@ -89,14 +89,14 @@ class TLDetector(object):
         self.has_image = True
 
         # rospy.loginfo('Image seq %s', msg.header.seq)
-        img_time = msg.header.stamp
-        age = rospy.Time.now() - img_time
-        if age.secs > 0.2:
-            rospy.loginfo('Image too old. Age %s', age.secs)
-            light_wp, state = -1, TrafficLight.UNKNOWN
-        else:
-            self.camera_image = msg
-            light_wp, state = self.process_traffic_lights()
+        # img_time = msg.header.stamp
+        # age = rospy.Time.now() - img_time
+        # if age.secs > 0.2:
+        #     rospy.loginfo('Image too old. Age %s', age.secs)
+        #     light_wp, state = -1, TrafficLight.UNKNOWN
+        # else:
+        self.camera_image = msg
+        light_wp, state = self.process_traffic_lights()
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -281,8 +281,8 @@ class TLDetector(object):
             y_end = int(height * 0.85)
             processed_img = cv_image[y_start:y_end, x_start:x_end]
         else:
-            x_projected, y_projected = self.project_to_image_plane(light)
-            print("X, Y projected:", x_projected, y_projected)
+            # x_projected, y_projected = self.project_to_image_plane(light)
+            # print("X, Y projected:", x_projected, y_projected)
             #we still need to zoom on the traffic light
             processed_img = cv_image.copy()
 
