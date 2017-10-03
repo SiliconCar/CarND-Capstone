@@ -393,7 +393,7 @@ class TLDetector(object):
             dist_to_light = abs(car_position - closest_light_stop_wp)
             #rospy.loginfo("Closest light position (in Wp index): %s", closest_light_stop_wp)
 
-        if light and dist_to_light < 200:       #we check the status of the traffic light if it's within 200 waypoints distance
+        if light and dist_to_light < 100:       #we check the status of the traffic light if it's within 200 waypoints distance
             state = self.get_light_state(light)
             #closest_stop_line_wp = self.find_stop_line(closest_light_wp)
             return closest_light_stop_wp, state
