@@ -31,7 +31,7 @@ Project contributions: Waypoint publisher, node communication infrastructure, ca
 
 ### Thomas Antony
 
-[tantony@purdue.edu](mailto:tantony@purdue.edu)
+[tantony.purdue@gmail.com](mailto:tantony.purdue@gmail.com)
 
 PhD Candidate at Purdue University
 
