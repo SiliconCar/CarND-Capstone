@@ -23,6 +23,7 @@ class TLDetector(object):
         rospy.init_node('tl_detector')
 
         self.sim_testing = bool(rospy.get_param("~sim_testing", True))
+        threshold = rospy.get_param('~threshold', 0.3)
 
         self.pose = None
         self.waypoints = None
@@ -34,7 +35,7 @@ class TLDetector(object):
 
         self.bridge = CvBridge()
         self.light_classifier = None
-        self.light_classifier = TLClassifier()
+        self.light_classifier = TLClassifier(threshold)
         self.listener = tf.TransformListener()
 
         img_full_np = self.light_classifier.load_image_into_numpy_array(np.zeros((800,600,3)))

@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     <node pkg="tl_detector" type="tl_detector.py" name="tl_detector" output="screen" cwd="node">
-           <param name="sim_testing" value="True" /> </node>
-
+        <param name="sim_testing" value="True" />
+        <param name="threshold" value="0.3" />
+    </node>
 </launch>
