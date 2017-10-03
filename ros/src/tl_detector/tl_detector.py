@@ -36,6 +36,9 @@ class TLDetector(object):
         self.light_classifier = TLClassifier()
         self.listener = tf.TransformListener()
 
+        img_full_np = self.light_classifier.load_image_into_numpy_array(np.zeros((800,600,3)))
+        self.light_classifier.get_localization(img_full_np) # "prime the pump"
+
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
@@ -53,14 +56,14 @@ class TLDetector(object):
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
         self.upcoming_traffic_light_pub = rospy.Publisher('/all_traffic_waypoint', TLStatus, queue_size=1)
 
-        self.state = TrafficLight.UNKNOWN
-        self.last_state = TrafficLight.UNKNOWN
+        self.state = None
+        self.last_state = None
         self.last_wp = -1
         self.state_count = 0
         self.count = 0  #processed images count
         self.total_classification = 0
         self.tp_classification = 0.0
-        print("TL Detection...initialization complete")
+        print("TL Detection ... initialization complete")
 
         rospy.spin()
 
@@ -108,7 +111,7 @@ class TLDetector(object):
             self.last_wp = light_wp
             tl_status_msg = TLStatus()
             tl_status_msg.header.frame_id = '/world'
-            tl_status_msg.header.stamp = rospy.Time(0)
+            tl_status_msg.header.stamp = rospy.Time.now()
             tl_status_msg.waypoint = light_wp
             tl_status_msg.state = state
             # rospy.loginfo("Light Wp is %s and state is %s", light_wp, self.state)
@@ -117,9 +120,14 @@ class TLDetector(object):
             # we keep publishing the last state and wp until it gets confirmed.
             tl_status_msg = TLStatus()
             tl_status_msg.header.frame_id = '/world'
-            tl_status_msg.header.stamp = rospy.Time(0)
+            tl_status_msg.header.stamp = rospy.Time.now()
             tl_status_msg.waypoint = self.last_wp
-            tl_status_msg.state = self.last_state
+            if self.last_state is not None:
+                tl_status_msg.state = self.last_state
+            else:
+                # Do not start moving until first light state is obtained
+                # Fix for starting issues
+                tl_status_msg.state = TrafficLight.RED
             #rospy.loginfo("Light Wp is %s and state is %s:", self.last_wp, self.last_state)
             self.upcoming_traffic_light_pub.publish(tl_status_msg)
         self.state_count += 1

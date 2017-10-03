@@ -107,7 +107,9 @@ class WaypointUpdater(object):
         self.send_next_waypoints()
 
     def traffic_state_cb(self, tl_status):
-        # rospy.loginfo("WPUpdater: Upcoming light state: %d and wy: %d", tl_status.state, tl_status.waypoint)
+        # Don't start off with a bad value
+        if self.next_light_wp is None and tl_status.waypoint == -1:
+            return
         self.next_light_wp = tl_status.waypoint
         self.next_light_state = tl_status.state
         if tl_status.state == TrafficLight.RED or tl_status.state == TrafficLight.YELLOW:
@@ -136,7 +138,7 @@ class WaypointUpdater(object):
 
     def send_next_waypoints(self):
         if self.waypoints is None or self.current_velocity is None \
-            or self.current_pose is None or self.next_light_wp is None:
+            or self.current_pose is None or self.next_light_wp is None or self.red_light_wp is None:
             return
         speed = self.current_velocity.twist.linear.x
         carx = self.current_pose.position.x
