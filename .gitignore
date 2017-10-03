@@ -4,3 +4,4 @@ build
 devel
 
 profile.tmp
+ros/src/tl_detector/light_classification/*.jpg

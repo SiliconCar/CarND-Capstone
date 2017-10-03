@@ -86,12 +86,12 @@ class TLDetector(object):
         # rospy.loginfo('Image seq %s', msg.header.seq)
         img_time = msg.header.stamp
         age = rospy.Time.now() - img_time
-        if age.secs > 0.2:
-            rospy.loginfo('Image too old. Age %s', age.secs)
-            light_wp, state = -1, TrafficLight.UNKNOWN
-        else:
-            self.camera_image = msg
-            light_wp, state = self.process_traffic_lights()
+        #if age.secs > 0.2:
+        #    rospy.loginfo('Image too old. Age %s', age.secs)
+        #    light_wp, state = -1, TrafficLight.UNKNOWN
+        #else:
+        self.camera_image = msg
+        light_wp, state = self.process_traffic_lights()
 
         # rospy.loginfo("The next traffic light state is %s and located at wp: %s", state, light_wp)
 
