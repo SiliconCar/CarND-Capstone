@@ -18,7 +18,7 @@ class Controller(object):
                                          kwargs['steering_gains']
                                          )
         self.last_t = None
-        #self.filter = LowPassFilter(0.2,0.1)
+        self.filter = LowPassFilter(0.2,0.1)
 
     '''
     Params:
@@ -26,7 +26,7 @@ class Controller(object):
     target_w - desired angular velocity
     current_v - current linear velocity
     dbw_enabled - drive by wire enabled (ignore error in this case)
-	'''
+    '''
     def control(self, target_v, target_w, current_v, dbw_enabled):
         # Get throttle value from controller
         if self.last_t is None or not dbw_enabled:
@@ -38,22 +38,17 @@ class Controller(object):
         throttle = self.throttle_pid.step(error_v, dt)
         throttle = max(0.0, min(1.0, throttle))
         if error_v < 0:
-            brake = -10.0*error_v   # Proportional braking
+            brake = -15.0*error_v   # Proportional braking
             brake = max(brake, 1.0)
             throttle = 0.0
         else:
             brake = 0.0
 
         # # Special case for stopping
-        # if abs(target_v.x) < 0.1:
-        #     brake = 12.0
+        if abs(target_v.x) < 0.1:
+            brake = 12.0
 
         steer = self.yaw_control.get_steering(target_v.x, target_w.z, current_v.x)
-        # if(target_v.x <= 1.0):
-        #     brake = 6.0
-        #     throttle = 0.0
-        #     #steer = 0.0
-
-        #steer = self.filter.filt(steer)
+        steer = self.filter.filt(steer)
         self.last_t = time.time()
         return throttle, brake, steer

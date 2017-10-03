@@ -25,4 +25,4 @@ class YawController(object):
         if current_velocity < self.min_speed:
             return 0.0
         else:
-            return self.get_angle(max(current_velocity, self.min_speed) / angular_velocity) if abs(angular_velocity) > 0. else 0.0;
+            return self.get_angle(max(current_velocity*0.8, self.min_speed) / angular_velocity) if abs(angular_velocity) > 0. else 0.0;
