@@ -153,8 +153,8 @@ class WaypointUpdater(object):
         end_index = len(self.waypoints)
 
         if self.last_wp_id is not None:
-            start_index = self.last_wp_id - 20
-            end_index = self.last_wp_id + 20
+            start_index = self.last_wp_id - 30
+            end_index = min(end_index,self.last_wp_id + 30)
 
         #for i, waypoint in enumerate(self.waypoints):
         for i in range(start_index, end_index):
