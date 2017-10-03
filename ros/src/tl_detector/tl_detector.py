@@ -16,12 +16,13 @@ import time
 import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
-SIM_TESTING = True
 
 
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
+
+        self.sim_testing = bool(rospy.get_param("~sim_testing", True))
 
         self.pose = None
         self.waypoints = None
@@ -271,13 +272,13 @@ class TLDetector(object):
 
         #TODO use light location to zoom in on traffic light in image
         #Prepare image for classification
-        if SIM_TESTING: #we cut 50 pixels left and right of the image and the bottom 100 pixels
+        if self.sim_testing: #we cut 50 pixels left and right of the image and the bottom 100 pixels
             width, height, _ = cv_image.shape
             x_start = int(width * 0.10)
             x_end = int(width * 0.90)
             y_start = 0
-            y_end = int(width * 0.85)
-            processed_img = cv_image[x_start:x_end, y_start:y_end]
+            y_end = int(height * 0.85)
+            processed_img = cv_image[y_start:y_end, x_start:x_end]
         else:
             x_projected, y_projected = self.project_to_image_plane(light)
             print("X, Y projected:", x_projected, y_projected)
