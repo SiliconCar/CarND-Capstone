@@ -368,7 +368,7 @@ class TLDetector(object):
                     closest_light_stop_wp = light_stop_wp    #if we have a closer light_wp ahead of the car position, we allocate closer value
                     light = light_stop_pose
 
-        if (car_position and closest_light_stop_wp):
+        if ((car_position is not None) and (closest_light_stop_wp is not None)):
             dist_to_light = abs(car_position - closest_light_stop_wp)
             #rospy.loginfo("Closest light position (in Wp index): %s", closest_light_stop_wp)
 
