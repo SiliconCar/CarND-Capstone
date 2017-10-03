@@ -293,10 +293,10 @@ class TLDetector(object):
             x_end = int(width * 0.90)
             y_start = 0
             y_end = int(width * 0.85) 
-            processed_img = cv_image[x_start:x_end, y_start:y_end]
+            processed_img = cv_image[y_start:y_end,x_start:x_end]
         else:
-            x_projected, y_projected = self.project_to_image_plane(light)
-            print("X, Y projected:", x_projected, y_projected)
+            #x_projected, y_projected = self.project_to_image_plane(light)
+            #print("X, Y projected:", x_projected, y_projected)
             #we still need to zoom on the traffic light
             processed_img = cv_image.copy()
 
@@ -320,6 +320,8 @@ class TLDetector(object):
         #convert image to np array
         img_full_np = self.light_classifier.load_image_into_numpy_array(processed_img)
         b = self.light_classifier.get_localization(img_full_np)
+        
+
         print(b)
         # If there is no detection or low-confidence detection
         unknown = False
@@ -328,10 +330,26 @@ class TLDetector(object):
            unknown = True
         else:    #we can use the classifier to classify the state of the traffic light
            img_np = cv2.resize(processed_img[b[0]:b[2], b[1]:b[3]], (32, 32))
+           cv2.rectangle(processed_img,(b[1],b[0]),(b[3],b[2]),(0,0,255),thickness=5)
+
            self.light_classifier.get_classification(img_np)
+           text = "None"
+           if(self.light_classifier.signal_status == 0):
+               text = "Red"
+           elif(self.light_classifier.signal_status == 1):
+               text = "Yellow"
+           elif(self.light_classifier.signal_status == 2):
+               text = "Green"
+           else:
+               text = "Unknown"
+           cv2.putText(processed_img,text,(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),2,cv2.LINE_AA)
            light_state = self.light_classifier.signal_status
 
         rospy.loginfo("Upcoming light %s, True state: %s", light_state, light_state_via_msg)
+        try:
+            self.detected_light_pub.publish(self.bridge.cv2_to_imgmsg(processed_img, "rgb8"))
+        except CvBridgeError as e:
+            print(e)
 
         #compare detected state against ground truth
         if not unknown:

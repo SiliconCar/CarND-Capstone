@@ -47,6 +47,7 @@ class TLClassifier(object):
         self.graph = tf.get_default_graph()
         
         #tensorflow localization/detection model
+        #detect_model_name ='ssd_inception_v2_coco_11_06_2017'
         detect_model_name = 'ssd_mobilenet_v1_coco_11_06_2017' #was 'ssd_inception_v2_coco_11_06_2017'
         PATH_TO_CKPT = detect_model_name + '/frozen_inference_graph.pb'
         # setup tensorflow graph
