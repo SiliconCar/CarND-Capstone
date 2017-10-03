@@ -201,14 +201,14 @@ class TLDetector(object):
 
         return closest_light_stop_wp
 
-    """def project_to_image_plane(self, point_in_world):
-    Project point from 3D world coordinates to 2D camera image location
-    Args:
-    point_in_world (Point): 3D location of a point in the world
-    Returns:
-    x (int): x coordinate of target point in image
-    y (int): y coordinate of target point in image
-
+    def project_to_image_plane(self, point_in_world):
+        """Project point from 3D world coordinates to 2D camera image location
+            Args:
+                point_in_world (Point): 3D location of a point in the world
+                Returns:
+                    x (int): x coordinate of target point in image
+                    y (int): y coordinate of target point in image
+        """
         fx = self.config['camera_info']['focal_length_x']
         fy = self.config['camera_info']['focal_length_y']
         image_width = self.config['camera_info']['image_width']
@@ -236,36 +236,24 @@ class TLDetector(object):
             rpy = tf.transformations.euler_from_quaternion(rot)
             yaw = rpy[2]
 
-            (ptx, pty, ptz) = (point_in_world.pose.pose.position.x, point_in_world.pose.pose.position.y, point_in_world.pose.pose.position.z)
+            (ptx, pty, ptz) = (point_in_world.position.x, point_in_world.position.y, point_in_world.position.z)
 
             #rotation
             point_to_cam = (ptx * math.cos(yaw) - pty * math.sin(yaw),
                             ptx * math.sin(yaw) + pty * math.cos(yaw),
-                    ptz)
+                            ptz)
             #translation
             point_to_cam = [sum(x) for x in zip(point_to_cam, trans)]
 
-            #print("Point to Cam:", point_to_cam)
-            ##########################################################################################
-            # DELETE THIS MAYBE - MANUAL TWEAKS TO GET THE PROJECTION TO COME OUT CORRECTLY IN SIMULATOR
-            # just override the simulator parameters. probably need a more reliable way to determine if
-            # using simulator and not real car
-            if fx < 10:
-                 fx = 2574
-                 fy = 2744
-                 point_to_cam[2] -= 1.0
-            ##########################################################################################
-
-            #rospy.loginfo_throttle(3, "camera to traffic light: " + str(point_to_cam))
+            #project to plan
             x = -fx * point_to_cam[1]/point_to_cam[0]
             y = -fy * point_to_cam[2]/point_to_cam[0]
 
             x = int(x + cx)
             y = int(y + cy)
 
-        #rospy.loginfo_throttle(3, "traffic light pixel (x,y): " + str(x) + "," + str(y))
         return (x, y)
-    """
+        
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -296,10 +284,17 @@ class TLDetector(object):
 
         #TODO use light location to zoom in on traffic light in image
         #Prepare image for classification
-        if SIM_TESTING: #we cut 100 pixels on the left and right of the image
+        if SIM_TESTING: #we cut 50 pixels left and right of the image and the bottom 100 pixels
             width, height, _ = cv_image.shape
-            processed_img = cv_image[50:width-50, 0:height-100]
+            x_start = int(width * 0.10)
+            x_end = int(width * 0.90)
+            y_start = 0
+            y_end = int(width * 0.85) 
+            processed_img = cv_image[x_start:x_end, y_start:y_end]
         else:
+            x_projected, y_projected = self.project_to_image_plane(light)
+            print("X, Y projected:", x_projected, y_projected)
+            #we still need to zoom on the traffic light
             processed_img = cv_image.copy()
 
         #Convert image to RGB format
