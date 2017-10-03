@@ -131,7 +131,7 @@ class TLClassifier(object):
                   box=[0, 0, 0, 0]
                   #print('no detection!')
               # If the confidence of detection is too slow    
-              elif scores[idx]<=0.08:
+              elif scores[idx]<=0.04:
                   box=[0, 0, 0, 0]
                   #print('low confidence')
               #If there is a detection and its confidence is high enough    

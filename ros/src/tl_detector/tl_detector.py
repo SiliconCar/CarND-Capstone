@@ -203,70 +203,74 @@ class TLDetector(object):
 	return closest_light_stop_wp
     
     def project_to_image_plane(self, point_in_world):
-	"""Project point from 3D world coordinates to 2D camera image location
-	Args:
-	point_in_world (Point): 3D location of a point in the world
-	Returns:
-	x (int): x coordinate of target point in image
-	y (int): y coordinate of target point in image
-	"""
+        """Project point from 3D world coordinates to 2D camera image location
+        Args:
+        point_in_world (Point): 3D location of a point in the world
+        Returns:
+        x (int): x coordinate of target point in image
+        y (int): y coordinate of target point in image
+        """
 
-	fx = self.config['camera_info']['focal_length_x']
-	fy = self.config['camera_info']['focal_length_y']
-	image_width = self.config['camera_info']['image_width']
-	image_height = self.config['camera_info']['image_height']
-		
-	#print("Image Size:", image_width, image_height)
-	cx = image_width / 2
-	cy = image_height / 2
+        fx = self.config['camera_info']['focal_length_x']
+        fy = self.config['camera_info']['focal_length_y']
+        image_width = self.config['camera_info']['image_width']
+        image_height = self.config['camera_info']['image_height']
+            
+        #print("Image Size:", image_width, image_height)
+        cx = image_width / 2
+        cy = image_height / 2
 
-	# get transform between pose of camera and world frame
-	trans = None
-	rot = None
-	x = 0
-	y = 0
-	try:
-	    now = rospy.Time.now()
-	    self.listener.waitForTransform("/base_link", "/world", now, rospy.Duration(1.0))
-            (trans, rot) = self.listener.lookupTransform("/base_link",		  "/world", now)
+        # get transform between pose of camera and world frame
+        trans = None
+        rot = None
+        x = 0
+        y = 0
 
-	except (tf.Exception, tf.LookupException, tf.ConnectivityException):
-	    rospy.logerr("Failed to find camera to map transform")
-	    return None, None
+        trans = [self.pose.pose.position.x,self.pose.pose.position.y,self.pose.pose.position.z]
+        rot = [self.pose.pose.orientation.w,self.pose.pose.orientation.x,self.pose.pose.orientation.y,self.pose.pose.orientation.z]
+        
+        #try:
+        #    now = rospy.Time.now()
+        #    self.listener.waitForTransform("/base_link", "/world", now, rospy.Duration(1.0))
+        #    (trans, rot) = self.listener.lookupTransform("/base_link","/world", now)
 
-	if (trans and rot):
-	    rpy = tf.transformations.euler_from_quaternion(rot)
-	    yaw = rpy[2]
+        #except (tf.Exception, tf.LookupException, tf.ConnectivityException):
+        #    rospy.logerr("Failed to find camera to map transform")
+        #    return None, None
+        
+        if (trans and rot):
+            rpy = tf.transformations.euler_from_quaternion(rot)
+            yaw = rpy[2]
 
-	    (ptx, pty, ptz) = (point_in_world.pose.pose.position.x, point_in_world.pose.pose.position.y, point_in_world.pose.pose.position.z)
-	    
-	    #rotation
-	    point_to_cam = (ptx * math.cos(yaw) - pty * math.sin(yaw),
-	                    ptx * math.sin(yaw) + pty * math.cos(yaw),
-			    ptz)
-	    #translation
-	    point_to_cam = [sum(x) for x in zip(point_to_cam, trans)]
+            (ptx, pty, ptz) = (point_in_world.pose.pose.position.x, point_in_world.pose.pose.position.y, point_in_world.pose.pose.position.z)
+            
+            #rotation
+            point_to_cam = (ptx * math.cos(yaw) - pty * math.sin(yaw),
+                            ptx * math.sin(yaw) + pty * math.cos(yaw),
+                    ptz)
+            #translation
+            point_to_cam = [sum(x) for x in zip(point_to_cam, trans)]
 
-	    #print("Point to Cam:", point_to_cam)
-	    ##########################################################################################
-	    # DELETE THIS MAYBE - MANUAL TWEAKS TO GET THE PROJECTION TO COME OUT CORRECTLY IN SIMULATOR
-	    # just override the simulator parameters. probably need a more reliable way to determine if 
-	    # using simulator and not real car
-	    #if fx < 10:
-        #         fx = 2574
-	    #     fy = 2744
-	    #     point_to_cam[2] -= 1.0  
-	    ##########################################################################################
+            #print("Point to Cam:", point_to_cam)
+            ##########################################################################################
+            # DELETE THIS MAYBE - MANUAL TWEAKS TO GET THE PROJECTION TO COME OUT CORRECTLY IN SIMULATOR
+            # just override the simulator parameters. probably need a more reliable way to determine if 
+            # using simulator and not real car
+            #if fx < 10:
+            #         fx = 2574
+            #     fy = 2744
+            #     point_to_cam[2] -= 1.0  
+            ##########################################################################################
 
-	    #rospy.loginfo_throttle(3, "camera to traffic light: " + str(point_to_cam))
-	    x = -fx * point_to_cam[1]/point_to_cam[0] 
-	    y = -fy * point_to_cam[2]/point_to_cam[0] 
+            #rospy.loginfo_throttle(3, "camera to traffic light: " + str(point_to_cam))
+            x = -fx * point_to_cam[0]/point_to_cam[2] 
+            y = -fy * point_to_cam[1]/point_to_cam[2] 
 
-	    x = int(x + cx)
-	    y = int(y + cy)
+            x = int(x + cx)
+            y = int(y + cy)
 
-	#rospy.loginfo_throttle(3, "traffic light pixel (x,y): " + str(x) + "," + str(y))
-	return (x, y)
+        #rospy.loginfo_throttle(3, "traffic light pixel (x,y): " + str(x) + "," + str(y))
+        return (x, y)
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -285,7 +289,8 @@ class TLDetector(object):
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
-        #x, y = self.project_to_image_plane(light)
+        x, y = self.project_to_image_plane(light)
+        print(x,y)
         #if(x is not None and y is not None):
         #   print("Location:",x,y)
 	#print ("Traffic Light @:", x,y)
@@ -303,9 +308,9 @@ class TLDetector(object):
         #Until we develop the classifier, let's search light in self.lights (fed by sub3) and return light state
         start = time.time()
         light_state = TrafficLight.UNKNOWN
-        cv_image = cv2.resize(cv_image,(0,0),fx=0.5,fy=0.5) 
-        print(cv_image.shape)
-        cv_image = cv_image[100:450,:]
+        #cv_image = cv2.resize(cv_image,(0,0),fx=0.5,fy=0.5) 
+        #print(cv_image.shape)
+        #cv_image = cv_image[100:450,:]
         img_full_np = self.light_classifier.load_image_into_numpy_array(cv_image)
         
         box = self.light_classifier.get_localization(img_full_np)
@@ -315,7 +320,7 @@ class TLDetector(object):
         ratio_check = False
         if(box_width > 0):
             aspect_ratio = float(box_height) / float(box_width)
-            ratio_check = (aspect_ratio) >= 1.5
+            ratio_check = (aspect_ratio) >= 2.0
         #bbox_img_msg = self.bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
         #self.detected_light_pub.publish(bbox_img_msg)
 
@@ -325,7 +330,7 @@ class TLDetector(object):
 
 
         #slight_state = self.light_classifier.get_classification(img_np)
-
+        
         if np.array_equal(box, np.zeros(4)):
             #print ('unknown')
             cv2.putText(cv_image,'No detections',(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),2,cv2.LINE_AA)
