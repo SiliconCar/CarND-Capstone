@@ -10,7 +10,7 @@
     <include file="$(find waypoint_follower)/launch/pure_pursuit.launch"/>
 
     <!--Waypoint Updater Node -->
-    <include file="$(find waypoint_updater)/launch/waypoint_updater.launch"/>
+    <include file="$(find waypoint_updater)/launch/waypoint_updater_site.launch"/>
 
     <!--Traffic Light Locations and Camera Config -->
     <param name="traffic_light_config" textfile="$(find tl_detector)/site_traffic_light_config.yaml" />
