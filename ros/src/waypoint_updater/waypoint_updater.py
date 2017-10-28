@@ -58,15 +58,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/all_traffic_waypoint',TLStatus,self.traffic_state_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
 
-
-        '''
-        TODO: Add a subscriber for /obstacle_waypoint
-
-        Not sure this is needed. I don't see it in the Udacity instructions.
-        Also this isn't a valid topic name. The closest thing is /vehicle/obstacle
-
-        -Doug
-        '''
+        self.sim_testing = bool(rospy.get_param("~sim_testing", True))
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
@@ -152,7 +144,8 @@ class WaypointUpdater(object):
         start_index = 0
         end_index = len(self.waypoints)
 
-        if self.last_wp_id is not None:
+        
+        if self.sim_testing and self.last_wp_id is not None:
             start_index = self.last_wp_id - 30
             end_index = min(end_index,self.last_wp_id + 30)
 
@@ -176,8 +169,6 @@ class WaypointUpdater(object):
         # rospy.loginfo("WPUpdater: Closest waypoint- idx:%d x:%f y:%f", min_loc, closest_wp_pos.x, closest_wp_pos.y);
         # Now that we have the shortest distance, get the next LOOKAHEAD_WPS waypoints.
         # This next line ensures that we loop around to the start of the list if we've hit the end.
-        # Not sure this is 100% correct... there's a pretty large delta between the positions
-        # at the end and beginning of the list
         next_wps = list(islice(cycle(self.waypoints), min_loc, min_loc + LOOKAHEAD_WPS - 1))
         '''
         Set the target speed of the vehicle based on traffic light locations.
@@ -196,13 +187,6 @@ class WaypointUpdater(object):
         Waypoint: 25   26   27   28   29   30   31 ...
         Speed:    10   7.5  5    2.5  0    10   10
 
-        '''
-
-        '''
-        WARNING - this case is not tested yet since there's no red light data.
-        This is my first stab at how I think it should be implemented. Don't
-        expect it to work right off the bat, but hopefully it's close :)
-        - Doug
         '''
         current_velocity = self.get_waypoint_velocity(closest_wp)
         wp_delta = self.next_light_wp - min_loc
