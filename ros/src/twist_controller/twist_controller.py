@@ -2,6 +2,7 @@ from yaw_controller import YawController
 from lowpass import LowPassFilter
 from pid import PID
 import time
+import rospy
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -18,6 +19,8 @@ class Controller(object):
                                          kwargs['steering_gains']
                                          )
         self.last_t = None
+        self.accel_limit = kwargs['accel_limit']
+        self.decel_limit = kwargs['decel_limit']
         self.filter = LowPassFilter(0.2,0.1)
 
     '''
@@ -30,11 +33,13 @@ class Controller(object):
     def control(self, target_v, target_w, current_v, dbw_enabled):
         # Get throttle value from controller
         if self.last_t is None or not dbw_enabled:
-            self.last_t = time.time()
+            self.last_t = rospy.get_time()
             return 0.0, 0.0, 0.0
 
-        dt = time.time() - self.last_t
+        dt = rospy.get_time() - self.last_t
+
         error_v = min(target_v.x, MAX_SPEED*ONE_MPH) - current_v.x
+        error_v = max(self.decel_limit*dt, min(self.accel_limit*dt, error_v))
         throttle = self.throttle_pid.step(error_v, dt)
         throttle = max(0.0, min(1.0, throttle))
         if error_v < 0:
