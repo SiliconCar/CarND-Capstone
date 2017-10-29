@@ -143,6 +143,19 @@ This controller translates the proposed linear and angular velocities into a ste
 
 This is the simplest controller of the three - we simply proportionally brake based on the difference in the vehicle’s current velocity and the proposed velocity. This proportional gain was tuned using trial and error to ensure reasonable stopping distances while at the same time allowing low-speed driving. Despite the simplicity, we found that it works very well.
 
+## Testing
+
+Most of the testing was done using the Udacity simulator. But we also tested our system on the site rosbag files, using the provided site.launch file. For example: 
+
+#launch site launch file
+roslaunch ros/launch/site.launch 
+#play bag file 
+rosbag play -l <bag file path> 
+
+Also we tested our detection system by outputting the detected bounding boxes to a new topic /detections and viewing them in the rqt GUI. The code for publishing the bounding box images was not included in our submission to reduce latency but can be found on the branch sean-bag-testing in our github repository.
+
+![image alt text](imgs/readme_image_5.png)
+
 ## Known Issues
 
 1. Due to the 10mph speed restriction and the timing of traffic lights, the car may not successfully make it through the intersection before the light turns red again. This can be solved by adjusting the light timing or increasing the speed limit. 
