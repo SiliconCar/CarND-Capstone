@@ -143,7 +143,37 @@ This controller translates the proposed linear and angular velocities into a ste
 
 This is the simplest controller of the three - we simply proportionally brake based on the difference in the vehicle’s current velocity and the proposed velocity. This proportional gain was tuned using trial and error to ensure reasonable stopping distances while at the same time allowing low-speed driving. Despite the simplicity, we found that it works very well.
 
-## Testing
+## Testing on Simulator
+
+We can first validate our project in the simulator using the following commands:
+
+git clone https://github.com/SiliconCar/CarND-Capstone.git
+
+Then, install python dependencies
+
+cd CarND-Capstone
+pip install -r requirements.txt
+
+We ran our simulator testing using Docker.
+To launch the Docker environment, follow the instructions below:
+
+cd CarND-Capstone
+./run.sh
+
+To build the environment in Docker, type in the following instruction (in the CarND-Captson directory):
+./udacity_make
+
+Finally, we can run our self-driving car code along with the simulator
+
+cd ros
+catkin_make
+source devel/setup.sh
+roslaunch launch/styx.launch
+
+Run the simulator (which can be downloaded here: 
+https://github.com/udacity/CarND-Capstone/releases/tag/v1.2
+
+## Testing for Site
 
 Most of the testing was done using the Udacity simulator. But we also tested our system on the site rosbag files, using the provided site.launch file. For example: 
 
