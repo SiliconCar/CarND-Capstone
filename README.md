@@ -166,8 +166,11 @@ To build the environment in Docker, type in the following instruction (in the Ca
 Finally, we can run our self-driving car code along with the simulator
 
 cd ros
-catkin_make
+
+catkin_make (only necessary if we want to rebuild the code)
+
 source devel/setup.sh
+
 roslaunch launch/styx.launch
 
 Run the simulator (which can be downloaded here: 
