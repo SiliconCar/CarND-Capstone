@@ -56,6 +56,9 @@ class DBWNode(object):
                                rospy.get_param('~steering_Ki', 0.0),
                                rospy.get_param('~steering_Kd', 0.0))
 
+        # Parameterize loop rate with 50 Hz as default if not found
+        self.rate_param = rospy.get_param('~rate_param', 50)
+        
         # Publishers
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
                                          SteeringCmd, queue_size=1)
@@ -83,7 +86,7 @@ class DBWNode(object):
 
 
     def loop(self):
-        rate = rospy.Rate(50) # 50Hz
+        rate = rospy.Rate(self.rate_param) # 50Hz means that it goes through the loop 50 times per sec
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
