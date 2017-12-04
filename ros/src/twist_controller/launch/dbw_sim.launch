@@ -17,5 +17,6 @@
         <param name="steering_Kp" value="0.5" />
         <param name="steering_Ki" value="0.0" />
         <param name="steering_Kd" value="0.0" />
+        <param name="param_rate" value = "10" />
     </node>
 </launch>
