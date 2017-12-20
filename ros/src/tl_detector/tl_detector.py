@@ -17,6 +17,16 @@ import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
+# gamma correction function used to reduce high sun exposure 
+def adjust_gamma(image, gamma=1.0):
+	# build a lookup table mapping the pixel values [0, 255] to
+	# their adjusted gamma values
+	invGamma = 1.0 / gamma
+	table = np.array([((i / 255.0) ** invGamma) * 255
+		for i in np.arange(0, 256)]).astype("uint8")
+ 
+	# apply gamma correction using the lookup table
+	return cv2.LUT(image, table) 
 
 class TLDetector(object):
     def __init__(self):
@@ -24,6 +34,9 @@ class TLDetector(object):
 
         self.sim_testing = bool(rospy.get_param("~sim_testing", True))
         threshold = rospy.get_param('~threshold', 0.3)
+        hw_ratio = rospy.get_param('~hw_ratio', 1.5)
+        self.gamma_correction = bool(rospy.get_param("~gamma_correction", False))
+
 
         self.pose = None
         self.waypoints = None
@@ -35,7 +48,7 @@ class TLDetector(object):
 
         self.bridge = CvBridge()
         self.light_classifier = None
-        self.light_classifier = TLClassifier(threshold)
+        self.light_classifier = TLClassifier(threshold, hw_ratio)
         self.listener = tf.TransformListener()
 
         img_full_np = self.light_classifier.load_image_into_numpy_array(np.zeros((800,600,3)))
@@ -262,14 +275,6 @@ class TLDetector(object):
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-        #x, y = self.project_to_image_plane(light)
-        #print ("Traffic Light @:", x,y)
-        #only keep this code for debugging purpose
-        #draw a small circle on the image, save the image and the point coordinates
-        #cv2.circle(cv_image, (int(x),int(y)), 10, (255,0,0), thickness = -1)
-        #filename = "/home/student/CarND-Capstone/imgs/trafficlights/TL-Img-X" + str(x) + "_Y" + str(y) + ".png"
-        #cv2.imwrite("/home/student/CarND-Capstone/imgs/trafficlights/JFImage.png", cv_image)
-
 
         #TODO use light location to zoom in on traffic light in image
         #Prepare image for classification
@@ -280,11 +285,8 @@ class TLDetector(object):
             y_start = 0
             y_end = int(height * 0.85)
             processed_img = cv_image[y_start:y_end, x_start:x_end]
-        else:
-            # x_projected, y_projected = self.project_to_image_plane(light)
-            # print("X, Y projected:", x_projected, y_projected)
-            #we still need to zoom on the traffic light
-            processed_img = cv_image.copy()
+        else:   # real-case testing. Reduce image size to avoid light reflections on hood.
+            processed_img = cv_image[20:400, 0:800]            
 
         #Convert image to RGB format
         processed_img = cv2.cvtColor(processed_img, cv2.COLOR_BGR2RGB)
@@ -305,6 +307,11 @@ class TLDetector(object):
         #detect traffic light position (box) in image
         #convert image to np array
         img_full_np = self.light_classifier.load_image_into_numpy_array(processed_img)
+        
+        #apply gamma correction to site testing in case of heavy sun exposure
+        if (self.gamma_correction == True):
+            img_full_np = adjust_gamma(img_full_np, 0.4)
+        
         b = self.light_classifier.get_localization(img_full_np)
         print(b)
         # If there is no detection or low-confidence detection

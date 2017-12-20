@@ -25,8 +25,9 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 
 
 class TLClassifier(object):
-    def __init__(self, threshold):
+    def __init__(self, threshold, hw_ratio):
         self.threshold = threshold
+        self.hw_ratio = hw_ratio    #height_width ratio
         print('Initializing classifier with threshold =', self.threshold)
         self.signal_classes = ['Red', 'Green', 'Yellow']
        # self.signal_status = TrafficLight.UNKNOWN
@@ -44,7 +45,7 @@ class TLClassifier(object):
 
         os.chdir(cwd)
         #keras classification model
-        self.cls_model = load_model('tl_model_1.h5')
+        self.cls_model = load_model('tl_model_5.h5') #switched to model 5 for harsh light
         self.graph = tf.get_default_graph()
 
         #tensorflow localization/detection model
@@ -133,7 +134,7 @@ class TLClassifier(object):
                   box=[0, 0, 0, 0]
                   print('no detection!')
               # If the confidence of detection is too slow, 0.3 for simulator
-              elif scores[idx]<=self.threshold:
+              elif scores[idx]<=self.threshold: #updated site treshold to 0.01 for harsh light
                   box=[0, 0, 0, 0]
                   print('low confidence:', scores[idx])
               #If there is a detection and its confidence is high enough
@@ -148,8 +149,8 @@ class TLClassifier(object):
                   if (box_h <20) or (box_w<20):
                       box =[0, 0, 0, 0]
                       print('box too small!', box_h, box_w)
-                  # if the h-w ratio is not right, 1.5 for simulator
-                  elif (ratio<1.5):
+                  # if the h-w ratio is not right, 1.5 for simulator, 0.5 for site
+                  elif (ratio < self.hw_ratio):
                       box =[0, 0, 0, 0]
                       print('wrong h-w ratio', ratio)
                   else:
