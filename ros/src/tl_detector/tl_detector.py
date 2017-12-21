@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Int32MultiArray
 from geometry_msgs.msg import PoseStamped, Pose
 from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
@@ -70,6 +70,8 @@ class TLDetector(object):
         #we don't use this publisher anymore. We publish the status of all traffic lights. Not just the red ones.
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
         self.upcoming_traffic_light_pub = rospy.Publisher('/all_traffic_waypoint', TLStatus, queue_size=1)
+        #self.detected_bbox_pub = rospy.Publisher('/detected_bbox', Int32MultiArray, queue_size=1) 
+        self.detected_light_pub = rospy.Publisher('/detections', Image, queue_size=1) 
 
         self.state = None
         self.last_state = None
@@ -321,10 +323,26 @@ class TLDetector(object):
            unknown = True
         else:    #we can use the classifier to classify the state of the traffic light
            img_np = cv2.resize(processed_img[b[0]:b[2], b[1]:b[3]], (32, 32))
+           cv2.rectangle(processed_img,(b[1],b[0]),(b[3],b[2]),(0,0,255),thickness=5)
            self.light_classifier.get_classification(img_np)
+           text = "None"
+           if(self.light_classifier.signal_status == 0):
+               text = "Red"
+           elif(self.light_classifier.signal_status == 1):
+               text = "Yellow"
+           elif(self.light_classifier.signal_status == 2):
+               text = "Green"
+           else:
+               text = "Unknown"
+           cv2.putText(processed_img,text,(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),2,cv2.LINE_AA)
            light_state = self.light_classifier.signal_status
 
         rospy.loginfo("Upcoming light %s, True state: %s", light_state, light_state_via_msg)
+        try:
+            self.detected_light_pub.publish(self.bridge.cv2_to_imgmsg(processed_img, "rgb8"))
+        except CvBridgeError as e:
+            print(e)
+
 
         #compare detected state against ground truth
         if not unknown:

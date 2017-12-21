@@ -146,7 +146,7 @@ class TLClassifier(object):
                   box_w = box[3] - box[1]
                   ratio = box_h/(box_w + 0.01)
                   # if the box is too small, 20 pixels for simulator
-                  if (box_h <20) or (box_w<20):
+                  if (box_h <15) or (box_w<15):
                       box =[0, 0, 0, 0]
                       print('box too small!', box_h, box_w)
                   # if the h-w ratio is not right, 1.5 for simulator, 0.5 for site
