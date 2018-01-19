@@ -87,6 +87,21 @@ We use a simple CNN for our classification. It consists of three convolutional l
 
 For training images, we use a combination of web scraping, simulator image capturing, and ROSbag image capturing. We use Keras (with Tensorflow as backend) for training with a total of 2,000 images (10% of which as validation/test samples). Except for normalization, we do not use other image augmentation techniques. We trained for 25 epochs and can achieve >99% validation/test accuracy. We save the model into the .h5 file.  The traffic-light classification is implemented in get_classification(self, image) function in CarND-Capstone/tree/master/ros/src/tl_detector/light_classification/tl_classifier.py.
 
+Udacity provided a rosbag with test site images so we could train our detection and classification algorithm. We extracted the images from the rosbag as follows:
+
+ - *Step 1:* Open a terminal window:
+      source devel/setup.sh
+      roscore
+ - *Step 2:* Open another terminal window:
+      source devel/setup.sh
+      rosbag play -l traffic_light_bag_files/<rosbag_name>.bag
+ - *Step 3:* Open a third terminal window:
+      source devel/setup.sh
+      rostopic list //to identify the current topics
+      rosrun image_view image_saver image:=/topic  //where topic is the topic we want to listen to.
+      
+Images are then extracted from the rosbag and saved in the current folder.
+
 Performance Tuning
 
 The traffic light detection system was initially found to be always lagging 2-3 seconds behind the simulator despite improvements in prediction time and setting the queue size to one. This was due to a bug in how ROS processes large messages. The camera image subscriber was modified to have a large buffer size (52 Mb) and a queue size of one. 
