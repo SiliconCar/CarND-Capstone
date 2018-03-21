@@ -48,10 +48,12 @@ class TLDetector(object):
 
         self.bridge = CvBridge()
         self.light_classifier = None
-        self.light_classifier = TLClassifier(threshold, hw_ratio)
+        self.light_classifier = TLClassifier(threshold, hw_ratio, self.sim_testing)
         self.listener = tf.TransformListener()
 
         img_full_np = self.light_classifier.load_image_into_numpy_array(np.zeros((800,600,3)))
+        #prime the pump. Don't need to do it for get_localization_classification.
+        
         self.light_classifier.get_localization(img_full_np) # "prime the pump"
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
@@ -286,7 +288,7 @@ class TLDetector(object):
             y_end = int(height * 0.85)
             processed_img = cv_image[y_start:y_end, x_start:x_end]
         else:   # real-case testing. Reduce image size to avoid light reflections on hood.
-            processed_img = cv_image[20:400, 0:800]            
+            processed_img = cv_image[0:600, 0:800] # was [20:400, 0:800]           
 
         #Convert image to RGB format
         processed_img = cv2.cvtColor(processed_img, cv2.COLOR_BGR2RGB)
@@ -308,39 +310,73 @@ class TLDetector(object):
         #convert image to np array
         img_full_np = self.light_classifier.load_image_into_numpy_array(processed_img)
         
-        #apply gamma correction to site testing in case of heavy sun exposure
+        #apply gamma correction to site testing if parameter set in launch file.
         if (self.gamma_correction == True):
             img_full_np = adjust_gamma(img_full_np, 0.4)
         
-        b = self.light_classifier.get_localization(img_full_np)
-        print(b)
-        # If there is no detection or low-confidence detection
+        # if simulator, we apply detection and classification separately
+        
         unknown = False
-        if np.array_equal(b, np.zeros(4)):
-           print ('unknown')
-           unknown = True
-        else:    #we can use the classifier to classify the state of the traffic light
-           img_np = cv2.resize(processed_img[b[0]:b[2], b[1]:b[3]], (32, 32))
-           self.light_classifier.get_classification(img_np)
-           light_state = self.light_classifier.signal_status
 
-        rospy.loginfo("Upcoming light %s, True state: %s", light_state, light_state_via_msg)
-
-        #compare detected state against ground truth
-        if not unknown:
-            self.count = self.count + 1
-            filename = "sim_image_" + str(self.count)
-            if (light_state == light_state_via_msg):
-               self.tp_classification = self.tp_classification + 1
-               #filename = filename + "_good_" + str(light_state) + ".jpg"
+        if self.sim_testing:
+            # find traffic light in image.
+            b = self.light_classifier.get_localization(img_full_np)
+            print(b)
+            # If there is no detection or low-confidence detection
+            if np.array_equal(b, np.zeros(4)):
+               print ('unknown')
+               unknown = True
+            else:    #we can use the classifier to classify the state of the traffic light
+               img_np = cv2.resize(processed_img[b[0]:b[2], b[1]:b[3]], (32, 32))
+               self.light_classifier.get_classification(img_np)
+               light_state = self.light_classifier.signal_status
+        else:
+            print("Get in Localization-Classification")
+            b, conf, cls_idx = self.light_classifier.get_localization_classification(img_full_np, visual=False)
+            print("Get out of Localization-Classification")
+            if np.array_equal(b, np.zeros(4)):
+                print ('unknown')
+                unknown = True
             else:
-               filename = filename + "_bad_" + str(light_state) + ".jpg"
-            #    cv2.imwrite(filename, cv_image)
-            self.total_classification = self.total_classification + 1
-            accuracy = (self.tp_classification / self.total_classification) * 100
-            if self.count % 20 == 0:
-                rospy.loginfo("Classification accuracy: %s", accuracy)
-        #return light_state_via_msg
+                #light_state = cls_idx
+                if cls_idx == 1.0:
+                    print('Green', b)
+                    light_state = TrafficLight.GREEN
+                elif cls_idx == 2.0:
+                    print('Red', b)
+                    light_state = TrafficLight.RED
+                elif cls_idx == 3.0:
+                    print('Yellow', b)
+                    light_state = TrafficLight.YELLOW
+                elif cls_idx == 4.0:
+                    print('Unknown', b)
+                    light_state = TrafficLight.UNKNOWN
+                else:
+                    print('Really Unknown! Didn\'t process image well', b)
+                    light_state = TrafficLight.UNKNOWN
+                    
+        #check prediction against ground truth
+        if self.sim_testing:
+            rospy.loginfo("Upcoming light %s, True state: %s", light_state, light_state_via_msg)
+            #compare detected state against ground truth for (simulator only)
+            if not unknown:
+                self.count = self.count + 1
+                filename = "sim_image_" + str(self.count)
+                if (light_state == light_state_via_msg):
+                   self.tp_classification = self.tp_classification + 1
+                   #filename = filename + "_good_" + str(light_state) + ".jpg"
+                else:
+                   filename = filename + "_bad_" + str(light_state) + ".jpg"
+                    #cv2.imwrite(filename, cv_image)
+                self.total_classification = self.total_classification + 1
+                accuracy = (self.tp_classification / self.total_classification) * 100
+                if self.count % 20 == 0:
+                    rospy.loginfo("Classification accuracy: %s", accuracy)
+        else: #site testing
+            self.count = self.count +1
+            #filename = "site_image_" + str(self.count) + str(light_state) + ".jpg"
+            #cv2.imwrite(filename, cv_image)
+            
         return light_state
 
     def process_traffic_lights(self):

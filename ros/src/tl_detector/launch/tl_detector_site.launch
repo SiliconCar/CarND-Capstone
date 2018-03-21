@@ -4,7 +4,7 @@
         <param name="sim_testing" value="False" />
         <param name="threshold" value="0.01" />
         <param name="hw_ratio" value="0.5" />
-        <param name="gamma_correction" value="True" />        
+        <param name="gamma_correction" value="False" />        
     </node>
     <node pkg="tl_detector" type="light_publisher.py" name="light_publisher" output="screen" cwd="node"/>
 </launch>
