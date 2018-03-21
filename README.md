@@ -65,9 +65,9 @@ This subsystem reads the world surrounding the vehicle and publishes relevant in
 
 ### Traffic Light Detection Node
 
-A crucial part of the vehicle’s self-driving capabilities comes from the ability to detect and classify upcoming traffic lights. This node processes images provided by the vehicle’s onboard camera and publishes upcoming traffic light information to the /traffic_waypoint topic. The Waypoint Updater node uses this information to determine if/when the car should slow down to safely stop at upcoming red lights.  We take a two-stage deep learning based approach in traffic light classification. That is, the traffic light detection module consists of two CNN based models: traffic light detection (localization) and (light) color classification.
+A crucial part of the vehicle’s self-driving capabilities comes from the ability to detect and classify upcoming traffic lights. This node processes images provided by the vehicle’s onboard camera and publishes upcoming traffic light information to the /traffic_waypoint topic. The Waypoint Updater node uses this information to determine if/when the car should slow down to safely stop at upcoming red lights.  We initially took a two-stage deep learning based approach for both simulator and test site testing. That is, the traffic light detection module consists of two CNN based models: traffic light detection (localization) and (light) color classification. However, due to challenging light conditions (brightness, sun exposure), we decided to create a single shot localizer-classifier solution for the test site testing.
 
-Traffic Light Detection
+#### Traffic Light Detection (Simulator Only)
 
 Traffic light detection takes a captured image as input and produces the bounding boxes as the output to be fed into the classification model. After many trial-and-errors, we decided to use [TensorFlow Object Detection API](https://github.com/tensorflow/models/tree/master/research/object_detection), which is an open source framework built on top of TensorFlow to construct, train and deploy object detection models. The Object Detection API also comes with a collection of detection models pre-trained on the [COCO dataset](http://mscoco.org/) that are well suited for fast prototyping. Specifically, we use a lightweight model: ssd_mobilenet_v1_coco that is based on Single Shot Multibox Detection (SSD) framework with minimal modification. The COCO dataset contains images of 90 classes ranging from vehicle to human. The index for traffic light is 10. Though this is a general-purpose detection model (not optimized specifically for traffic light detection), we find this model sufficiently met our needs, achieving the balance between good bounding box accuracy (as shown in the following figure) and fast running time.
 
@@ -75,7 +75,7 @@ Traffic light detection takes a captured image as input and produces the boundin
 
 The traffic-light detection is implemented in get_localization(self, image, visual=False) function in CarND-Capstone/tree/master/ros/src/tl_detector/light_classification/tl_classifier.py. The traffic-light detector drops any camera frames that are older than 0.2 seconds to overcome any lag in the system.
 
-Traffic Light Classification
+#### Traffic Light Classification (Simulator Only)
 
 After locating the bounding box for the traffic light, we crop the image to only include the traffic light, resize it to 32x32, and pass this along to the object classification step, as shown in the following figure. 
 
@@ -102,11 +102,33 @@ Udacity provided a rosbag with test site images so we could train our detection 
       
 Images are then extracted from the rosbag and saved in the current folder.
 
-Performance Tuning
+#### Performance Tuning
 
 The traffic light detection system was initially found to be always lagging 2-3 seconds behind the simulator despite improvements in prediction time and setting the queue size to one. This was due to a bug in how ROS processes large messages. The camera image subscriber was modified to have a large buffer size (52 Mb) and a queue size of one. 
 
 Another possible bottleneck was found to be in the very-first image processing step which was somehow very slow compared to the later ones. To overcome this, during the initialization of the tl_detector node, the traffic light localizer/classifier is called with an empty 800x600 image ensuring that all the TensorFlow systems are initialized. This ensured that subsequent evaluations were much faster.
+
+#### Single-shot localization-classification solution (test site only)
+In our previous submission, we took a two-stage deep learning based approach in traffic light classification. That is, with two separate modules in tandem, we first detect (localize) the traffic light(s) in an image (frame) (localization) and then input the cropped traffic light image to a CNN based classifier. For the detector part, we used TensorFlow Object Detection API, specifically ssd_mobilenet_v1_coco (developed with Single Shot Multibox Detection (SSD) framework and COCO image datasets). During our initial submission, we found this model sufficiently met our needs, achieving the balance between good box accuracy (with the lighting condition and camera configuration at during September and October 2017) and fast running time.
+
+However, in the subsequent submissions, we found out the ssd_mobilenet_v1_coco as a general-purpose detection model (not optimized specifically for traffic light detection), does not generalize well when the lighting condition deviates from that of the training images. For example, the very saturated light condition (with glare and reflection, as shown in the following test site Images from late November 2017) could easily throw off the detector. This led to miss-detection, false-positive, or inaccurate bounding boxes, which in turn gave rise to erroneous classification results.
+
+![image alt text](imgs/readme_image_6.png)
+
+We tried some tricks to alleviate the hard lighting conditions, such as **Gamma Correction technique** and cropping. Though these approaches reduced the miss-detection and improve bounding box accuracy to a certain degree (as shown in the following figure), it also could lead to overfitting or an increase in false-positives, should the lighting condition at the test site change again.
+
+![image alt text](imgs/readme_image_7.png)
+
+To address the above mentioned issues, we decided to make two design changes in this iteration:
+ 1.	Instead of using a general purpose detector, we optimized the ssd_mobilenet_v1_coco specific for traffic light detection (in the test site).
+ 2.	Instead of a two-stage approach, we opt for an end-to-end one-shot approach that provide both bounding box and classification results as outputs.
+
+To this end, we selected a total about 300 test site images with various lighting conditions and camera configurations. We manually label the bounding box and light colors using labelImg. That is, we optimized an SSD detector for localizing and classifying Red, Green, and Yellow traffic light. We follow steps listed in the blog post [Tracking Custom Objects Intro - Tensorflow Object Detection API Tutorial] (https://pythonprogramming.net/custom-objects-tracking-tensorflow-object-detection-api-tutorial/) and trained for >12,000 global steps (this on average took about 12 hours on a MacBook Pro). Our initial assessments show that the one-shot detector can perform very well even in some very challenging lighting conditions, as shown in the following.
+
+![image alt text](imgs/readme_image_8.png)
+![image alt text](imgs/readme_image_9.png)
+![image alt text](imgs/readme_image_10.png)
+![image alt text](imgs/readme_image_11.png)
 
 ## Planning Subsystem
 
