@@ -65,7 +65,7 @@ class TLClassifier(object):
             # the tensorflow graph
         
         else: # site testing where we load the localization+classification model        
-            detect_model_name = 'ssd_kyle_v1'
+            detect_model_name = 'ssd_kyle_v2'
             PATH_TO_CKPT = detect_model_name + '/frozen_inference_graph.pb'
             # setup tensorflow graph
             self.detection_graph = tf.Graph()
